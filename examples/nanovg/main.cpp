@@ -110,7 +110,7 @@ void OnLightsImGui(VkState& vk)
 int main()
 {
     bool enableMSAA = true;
-    VkState vk = init::Create<VkSDL>("Forward Lights", 1920, 1080, enableMSAA);
+    VkState vk = init::Create<VkSDL>("NanoVG", 1920, 1080, enableMSAA);
     FillExampleLightData(lightDataCpu);
 
     ShaderProgram lights_prog= ShaderProgram::CreateGraphicsFromSourcePath(
