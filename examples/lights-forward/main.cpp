@@ -114,7 +114,7 @@ int main()
     // Pipeline stage?
     auto vertexDescription = VertexDataPosNormalUv::GetVertexDescription(*vk.m_CPUAllocator);
     VkPipelineData pipeline = vku::pipelines::CreateRasterPipeline(vk,
-        lights_prog,vertexDescription, defaults::CullNoneRasterStateMSAA,
+        lights_prog,vertexDescription, enableMSAA ? defaults::CullNoneRasterStateMSAA : defaults::CullNoneRasterState,
         vk.m_SwapchainImageRenderPass, vk.m_SwapChainImageExtent);
 
     // create vertex and index buffer
