@@ -6,7 +6,7 @@
 #include "assimp/postprocess.h"
 #include "assimp/scene.h"
 
-#include "lvk/lvk.h"
+#include "vku/vku.h"
 #include "ThirdParty/nanovg.h"
 
 #define GLM_FORCE_RADIANS
@@ -17,7 +17,7 @@
 
 #include "volk.h"
 
-void lvk_internal_printf(const char* fmt, ...)
+void vku_internal_printf(const char* fmt, ...)
 {
     va_list args;
     va_start(args, fmt);
@@ -63,7 +63,7 @@ struct AABB
 
 
 struct MeshEx {
-    lvk::Mesh m_Mesh;
+    vku::Mesh m_Mesh;
     AABB m_AABB;
     glm::mat4 m_OBB;
 
@@ -80,15 +80,15 @@ struct MeshEx {
 
 struct MaterialEx
 {
-    lvk::Texture m_Diffuse;
+    vku::Texture m_Diffuse;
 };
 
 struct Model
 {
-    lvk::Vector<MeshEx>        m_Meshes;
-    lvk::Vector<MaterialEx>  m_Materials;
+    vku::Vector<MeshEx>        m_Meshes;
+    vku::Vector<MaterialEx>  m_Materials;
 
-    Model(lvk::IAllocator& alloc) :
+    Model(vku::IAllocator& alloc) :
         m_Meshes(alloc), m_Materials(alloc) {
     }
 };
@@ -181,16 +181,16 @@ static glm::vec3 AssimpToGLM(aiVector3D& aiVec)
     return { aiVec.x, aiVec.y, aiVec.z };
 }
 
-static lvk::String AssimpToSTD(lvk::IAllocator& alloc, aiString str) {
-    return lvk::String(str.C_Str(), alloc);
+static vku::String AssimpToSTD(vku::IAllocator& alloc, aiString str) {
+    return vku::String(str.C_Str(), alloc);
 }
 
-void FreeMesh(lvk::VkState & vk, MeshEx& m)
+void FreeMesh(vku::VkState & vk, MeshEx& m)
 {
     m.m_Mesh.Free(vk);
 }
 
-void FreeModel(lvk::VkState & vk, Model& model)
+void FreeModel(vku::VkState & vk, Model& model)
 {
     for (MeshEx& m : model.m_Meshes)
     {
@@ -198,8 +198,8 @@ void FreeModel(lvk::VkState & vk, Model& model)
     }
 }
 
-void ProcessMesh(lvk::VkState & vk, Model& model, aiMesh* mesh, aiNode* node, const aiScene* scene) {
-    using namespace lvk;
+void ProcessMesh(vku::VkState & vk, Model& model, aiMesh* mesh, aiNode* node, const aiScene* scene) {
+    using namespace vku;
     bool hasPositions = mesh->HasPositions();
     bool hasUVs = mesh->HasTextureCoords(0);
     bool hasIndices = mesh->HasFaces();
@@ -219,7 +219,7 @@ void ProcessMesh(lvk::VkState & vk, Model& model, aiMesh* mesh, aiNode* node, co
         for (unsigned int i = 0; i < mesh->mNumFaces; i++) {
             aiFace currentFace = mesh->mFaces[i];
             if (currentFace.mNumIndices != 3) {
-                LVK_LOG_ERR("Attempting to import a mesh with non triangular face structure! cannot load this mesh.");
+                VKU_LOG_ERR("Attempting to import a mesh with non triangular face structure! cannot load this mesh.");
                 return;
             }
             for (unsigned int index = 0; index < mesh->mFaces[i].mNumIndices; index++) {
@@ -268,8 +268,8 @@ AABB TransformAABB(AABB& in, glm::mat4& m)
     return ret;
 }
 
-void ProcessMeshWithNormals(lvk::VkState & vk, Model& model, aiMesh* mesh, aiNode* node, const aiScene* scene) {
-    using namespace lvk;
+void ProcessMeshWithNormals(vku::VkState & vk, Model& model, aiMesh* mesh, aiNode* node, const aiScene* scene) {
+    using namespace vku;
     bool hasPositions = mesh->HasPositions();
     bool hasUVs = mesh->HasTextureCoords(0);
     bool hasNormals = mesh->HasNormals();
@@ -299,7 +299,7 @@ void ProcessMeshWithNormals(lvk::VkState & vk, Model& model, aiMesh* mesh, aiNod
         for (unsigned int i = 0; i < mesh->mNumFaces; i++) {
             aiFace currentFace = mesh->mFaces[i];
             if (currentFace.mNumIndices != 3) {
-                LVK_LOG_ERR("Attempting to import a mesh with non triangular face structure! cannot load this mesh.");
+                VKU_LOG_ERR("Attempting to import a mesh with non triangular face structure! cannot load this mesh.");
                 return;
             }
             for (unsigned int index = 0; index < mesh->mFaces[i].mNumIndices; index++) {
@@ -319,7 +319,7 @@ void ProcessMeshWithNormals(lvk::VkState & vk, Model& model, aiMesh* mesh, aiNod
     model.m_Meshes.push_back(m);
 }
 
-void ProcessNode(lvk::VkState & vk, Model& model, aiNode* node, const aiScene* scene, bool withNormals = false) {
+void ProcessNode(vku::VkState & vk, Model& model, aiNode* node, const aiScene* scene, bool withNormals = false) {
 
     if (node->mNumMeshes > 0) {
         for (unsigned int i = 0; i < node->mNumMeshes; i++) {
@@ -345,7 +345,7 @@ void ProcessNode(lvk::VkState & vk, Model& model, aiNode* node, const aiScene* s
     }
 }
 
-void LoadModelAssimp(lvk::VkState & vk, Model& model, const char* path, bool withNormals = false)
+void LoadModelAssimp(vku::VkState & vk, Model& model, const char* path, bool withNormals = false)
 {
     Assimp::Importer importer;
     const aiScene* scene = importer.ReadFile(path,
@@ -360,7 +360,7 @@ void LoadModelAssimp(lvk::VkState & vk, Model& model, const char* path, bool wit
     );
     //
     if (scene == nullptr) {
-        LVK_LOG_ERR("AssimpModelAssetFactory : Failed to load asset at path : %s", path);
+        VKU_LOG_ERR("AssimpModelAssetFactory : Failed to load asset at path : %s", path);
         return;
     }
     ProcessNode(vk, model, scene->mRootNode, scene, withNormals);
@@ -371,7 +371,7 @@ void LoadModelAssimp(lvk::VkState & vk, Model& model, const char* path, bool wit
     std::string path_stl(path);
     auto lastDelim = path_stl.find_last_of('/') + 1;
     std::string dir_stl = path_stl.substr(0, lastDelim);
-    lvk::String directory = lvk::String(dir_stl, *vk.m_CPUAllocator);
+    vku::String directory = vku::String(dir_stl, *vk.m_CPUAllocator);
 
     for (unsigned int i = 0; i < scene->mNumMaterials; i++)
     {
@@ -392,18 +392,18 @@ void LoadModelAssimp(lvk::VkState & vk, Model& model, const char* path, bool wit
         {
             aiString resultPath;
             aiGetMaterialTexture(meshMaterial, aiTextureType_DIFFUSE, 0, &resultPath);
-            lvk::String finalPath = directory + lvk::String(resultPath.C_Str(), *vk.m_CPUAllocator);
-            lvk::Texture texture = lvk::Texture::CreateTexture(vk, finalPath.c_str(), VK_FORMAT_R8G8B8A8_UNORM);
+            vku::String finalPath = directory + vku::String(resultPath.C_Str(), *vk.m_CPUAllocator);
+            vku::Texture texture = vku::Texture::CreateTexture(vk, finalPath.c_str(), VK_FORMAT_R8G8B8A8_UNORM);
             model.m_Materials.push_back({ texture });
         }
     }
 }
 
-MeshEx BuildScreenSpaceQuad(lvk::VkState & vk, lvk::Vector <lvk::VertexDataPosUv > & verts, lvk::Vector<uint32_t>& indices)
+MeshEx BuildScreenSpaceQuad(vku::VkState & vk, vku::Vector <vku::VertexDataPosUv > & verts, vku::Vector<uint32_t>& indices)
 {
     MeshEx m{};
-    m.m_Mesh.m_VertexBuffer = lvk::buffers::CreateVertexBuffer<lvk::VertexDataPosUv>(vk, verts);
-    m.m_Mesh.m_IndexBuffer  = lvk::buffers::CreateIndexBuffer(vk, indices);
+    m.m_Mesh.m_VertexBuffer = vku::buffers::CreateVertexBuffer<vku::VertexDataPosUv>(vk, verts);
+    m.m_Mesh.m_IndexBuffer  = vku::buffers::CreateIndexBuffer(vk, indices);
     m.m_IndexCount = 6;
     return m;
 }
@@ -415,22 +415,22 @@ using DeferredLightData = FrameLightDataT<NUM_LIGHTS>;
 struct RenderItem
 {
     MeshEx              m_Mesh;
-    lvk::Material       m_Material;
+    vku::Material       m_Material;
 
-    RenderItem(lvk::IAllocator& alloc) : m_Material(alloc) {}
+    RenderItem(vku::IAllocator& alloc) : m_Material(alloc) {}
 };
 
 struct RenderModel
 {
     Model m_Original;
-    lvk::Vector<RenderItem> m_RenderItems;
+    vku::Vector<RenderItem> m_RenderItems;
 
-    RenderModel(lvk::IAllocator& alloc) : m_RenderItems(alloc), m_Original(alloc)
+    RenderModel(vku::IAllocator& alloc) : m_RenderItems(alloc), m_Original(alloc)
     {
 
     }
 
-    void Free(lvk::VkState & vk)
+    void Free(vku::VkState & vk)
     {
         for (auto& item : m_RenderItems)
         {

@@ -3,17 +3,17 @@
 #include "ImGui/imgui_impl_vulkan.h"
 #include "SDL3/SDL_vulkan.h"
 #include "VkSDL.h"
-#include "lvk/Init.h"
-#include "lvk/Submission.h"
-#include "lvk/Log.h"
+#include "vku/Init.h"
+#include "vku/Submission.h"
+#include "vku/Log.h"
 #include "volk.h"
 #include <filesystem>
 
-lvk::VkSDL::~VkSDL()
+vku::VkSDL::~VkSDL()
 {
 }
 
-void lvk::VkSDL::HandleSDLEvent(VkState& vk, SDL_Event& sdl_event)
+void vku::VkSDL::HandleSDLEvent(VkState& vk, SDL_Event& sdl_event)
 {
     if (sdl_event.type == SDL_EVENT_QUIT)
     {
@@ -29,7 +29,7 @@ void lvk::VkSDL::HandleSDLEvent(VkState& vk, SDL_Event& sdl_event)
 
 }
 
-lvk::Vector<const char*> lvk::VkSDL::GetRequiredInstanceExtensions(VkState& vk)
+vku::Vector<const char*> vku::VkSDL::GetRequiredInstanceExtensions(VkState& vk)
 {
     uint32_t extensionCount = 0;
 
@@ -37,7 +37,7 @@ lvk::Vector<const char*> lvk::VkSDL::GetRequiredInstanceExtensions(VkState& vk)
         SDL_Vulkan_GetInstanceExtensions(&extensionCount);
     if(extensionCount == 0)
     {
-        LVK_LOG_ERR("Failed to enumerate required SDL device extensions");
+        VKU_LOG_ERR("Failed to enumerate required SDL device extensions");
         return Vector<const char*>(*vk.m_CPUAllocator);
     }
     STLAllocator<const char*> alloc(*vk.m_CPUAllocator);
@@ -55,25 +55,25 @@ lvk::Vector<const char*> lvk::VkSDL::GetRequiredInstanceExtensions(VkState& vk)
     return extensionNames;
 }
 
-void lvk::VkSDL::CreateSurface(VkState& vk)
+void vku::VkSDL::CreateSurface(VkState& vk)
 {
     // todo: do we want to provide an alloc callback to SDL?
     const VkAllocationCallbacks* alloc_callback = nullptr;
     if (!SDL_Vulkan_CreateSurface(
             m_SdlHandle->m_SdlWindow, vk.m_Instance,alloc_callback, &vk.m_Surface))
     {
-        LVK_LOG_ERR("Failed to create SDL Vulkan surface");
+        VKU_LOG_ERR("Failed to create SDL Vulkan surface");
         std::cerr << "Failed to create SDL Vulkan surface";
     }
 }
 
-void lvk::VkSDL::CleanupWindow(VkState& vk)
+void vku::VkSDL::CleanupWindow(VkState& vk)
 {
     VulkanAPIWindowHandle_SDL* derived = static_cast<VulkanAPIWindowHandle_SDL*>(vk.m_WindowHandle);
 
     if (derived == nullptr)
     {
-        LVK_LOG_ERR("Failed to cast Window Handle to SDL WindowHandle");
+        VKU_LOG_ERR("Failed to cast Window Handle to SDL WindowHandle");
         return;
     }
     SDL_DestroyWindow(m_SdlHandle->m_SdlWindow);
@@ -82,12 +82,12 @@ void lvk::VkSDL::CleanupWindow(VkState& vk)
     SDL_Quit();
 }
 
-bool lvk::VkSDL::ShouldRun(VkState& vk)
+bool vku::VkSDL::ShouldRun(VkState& vk)
 {
     return vk.m_ShouldRun;
 }
 
-void lvk::VkSDL::PreFrame(VkState& vk)
+void vku::VkSDL::PreFrame(VkState& vk)
 {
     uint64_t currentFrame = SDL_GetPerformanceCounter();
     vk.m_DeltaTime = (currentFrame - vk.m_LastFrameTime) / (double)SDL_GetPerformanceFrequency();
@@ -103,7 +103,7 @@ void lvk::VkSDL::PreFrame(VkState& vk)
     ImGui::NewFrame();
 }
 
-void lvk::VkSDL::PostFrame(VkState& vk)
+void vku::VkSDL::PostFrame(VkState& vk)
 {
     ImGui::EndFrame();
     ImGui::UpdatePlatformWindows();
@@ -112,26 +112,26 @@ void lvk::VkSDL::PostFrame(VkState& vk)
 
     if (vkDeviceWaitIdle(vk.m_LogicalDevice) != VK_SUCCESS)
     {
-        LVK_LOG_ERR("Failed to wait for device idle");
+        VKU_LOG_ERR("Failed to wait for device idle");
         std::cerr << "Failed to wait for device idle" << std::endl;
     }
 
     init::ClearCommandBuffers(vk);
 }
 
-void lvk::VkSDL::InitImGuiBackend(VkState& vk)
+void vku::VkSDL::InitImGuiBackend(VkState& vk)
 {
     vk;
     ImGui_ImplSDL3_InitForVulkan(m_SdlHandle->m_SdlWindow);
 }
 
-void lvk::VkSDL::CleanupImGuiBackend(VkState& vk)
+void vku::VkSDL::CleanupImGuiBackend(VkState& vk)
 {
     vk;
     ImGui_ImplSDL3_Shutdown();
 }
 
-void lvk::VkSDL::Run(VkState& vk, std::function<void()> callback)
+void vku::VkSDL::Run(VkState& vk, std::function<void()> callback)
 {
     vk.m_ShouldRun = true;
     while (vk.m_ShouldRun)
@@ -150,12 +150,12 @@ void lvk::VkSDL::Run(VkState& vk, std::function<void()> callback)
     }
     if (vkDeviceWaitIdle(vk.m_LogicalDevice) != VK_SUCCESS)
     {
-        LVK_LOG_ERR("Failed to wait for device idle");
+        VKU_LOG_ERR("Failed to wait for device idle");
         std::cerr << "Failed to wait for device idle" << std::endl;
     }
 }
 
-VkExtent2D lvk::VkSDL::GetSurfaceExtent(VkState& vk, VkSurfaceCapabilitiesKHR surface)
+VkExtent2D vku::VkSDL::GetSurfaceExtent(VkState& vk, VkSurfaceCapabilitiesKHR surface)
 {
     vk;
     surface;
@@ -165,7 +165,7 @@ VkExtent2D lvk::VkSDL::GetSurfaceExtent(VkState& vk, VkSurfaceCapabilitiesKHR su
     return VkExtent2D{};
 }
 
-    VkExtent2D lvk::VkSDL::GetMaxFramebufferResolution(VkState& vk)
+    VkExtent2D vku::VkSDL::GetMaxFramebufferResolution(VkState& vk)
 {
     vk;
     int numDisplays = 0;
@@ -195,7 +195,7 @@ VkExtent2D lvk::VkSDL::GetSurfaceExtent(VkState& vk, VkSurfaceCapabilitiesKHR su
     return res;
 }
 
-lvk::StageBinary lvk::VkSDL::LoadBinaryFromPath(VkState& vk, const char* path)
+vku::StageBinary vku::VkSDL::LoadBinaryFromPath(VkState& vk, const char* path)
 {
     size_t numBytes;
     void* addr = SDL_LoadFile(path, &numBytes);
@@ -206,7 +206,7 @@ lvk::StageBinary lvk::VkSDL::LoadBinaryFromPath(VkState& vk, const char* path)
     return binary;
 }
 
-lvk::String lvk::VkSDL::LoadStringFromPath(VkState& vk, const char* path)
+vku::String vku::VkSDL::LoadStringFromPath(VkState& vk, const char* path)
 {
     size_t numBytes;
     void* addr = SDL_LoadFile(path, &numBytes);
@@ -217,14 +217,14 @@ lvk::String lvk::VkSDL::LoadStringFromPath(VkState& vk, const char* path)
     return str;
 }
 
-lvk::VkSDL::VkSDL(bool enableDebugValidation)
+vku::VkSDL::VkSDL(bool enableDebugValidation)
 {
-    LVK_LOG_INFO("LVK : current working directory : %s : enable validation? %d",
+    VKU_LOG_INFO("VKU : current working directory : %s : enable validation? %d",
         std::filesystem::current_path().string().c_str(),
         enableDebugValidation ? 1 : 0);
 }
 
-lvk::VulkanAPIWindowHandle_SDL::VulkanAPIWindowHandle_SDL(SDL_Window* sdlWindow) : m_SdlWindow(sdlWindow)
+vku::VulkanAPIWindowHandle_SDL::VulkanAPIWindowHandle_SDL(SDL_Window* sdlWindow) : m_SdlWindow(sdlWindow)
 {
     
 }

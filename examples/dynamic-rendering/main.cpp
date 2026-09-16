@@ -1,11 +1,11 @@
 #include "example-common.h"
-#include "lvk/Shader.h"
-#include "lvk/Material.h"
+#include "vku/Shader.h"
+#include "vku/Material.h"
 #include <algorithm>
-#include "Im3D/im3d_lvk.h"
-#include "ImGui/lvk_extensions.h"
+#include "Im3D/im3d_vku.h"
+#include "ImGui/vku_extensions.h"
 
-using namespace lvk;
+using namespace vku;
 
 struct RenderData
 {
@@ -19,8 +19,8 @@ struct ViewData
     Framebuffer m_LightPassFB;
     Material    m_LightPassMaterial;
 
-    LvkIm3dViewState m_Im3dState;
-    LvkIm3dViewState m_DeferredIm3dState;
+    VkuIm3dViewState m_Im3dState;
+    VkuIm3dViewState m_DeferredIm3dState;
     VkExtent2D  m_CurrentResolution{ 1920, 1080 };
 
     Camera      m_Camera;
@@ -29,7 +29,7 @@ struct ViewData
 
 static Transform g_Transform;
 
-ViewData CreateView(VkState & vk, LvkIm3dState im3dState, ShaderProgram gbufferProg, ShaderProgram lightPassProg)
+ViewData CreateView(VkState & vk, VkuIm3dState im3dState, ShaderProgram gbufferProg, ShaderProgram lightPassProg)
 {
     Framebuffer gbuffer(*vk.m_CPUAllocator);
     gbuffer.AddColourAttachment(vk, ResolutionScale::Full, 1, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
@@ -94,7 +94,7 @@ RenderData CreateRenderData(VkState& vk, ShaderProgram gbufferProg, ShaderProgra
     
     VkPipelineLayout gbufferPipelineLayout;
     auto vertexDescription = VertexDataPosNormalUv::GetVertexDescription(*vk.m_CPUAllocator);
-    VkPipelineData gbufferPipeline = lvk::pipelines::CreateDynamicRasterPipeline(vk,
+    VkPipelineData gbufferPipeline = vku::pipelines::CreateDynamicRasterPipeline(vk,
         gbufferProg,vertexDescription,
         defaults::DefaultRasterState,
         vk.m_SwapChainImageExtent, gbufferFormats);
@@ -112,7 +112,7 @@ RenderData CreateRenderData(VkState& vk, ShaderProgram gbufferProg, ShaderProgra
         VK_COMPARE_OP_NEVER,
         VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST
     };
-    VkPipelineData pipeline = lvk::pipelines::CreateDynamicRasterPipeline(vk,
+    VkPipelineData pipeline = vku::pipelines::CreateDynamicRasterPipeline(vk,
        lightPassProg, presentVertexDescription, lightPassRasterState,
        vk.m_SwapChainImageExtent,  presentFormats);
 
@@ -159,7 +159,7 @@ void UpdateViewData(VkState & vk, ViewData* view, DeferredLightData& lightData)
     view->m_LightPassMaterial.SetBuffer(vk.m_CurrentFrameIndex, 0, 3, lightData);
 }
 
-void RecordCommandBuffersV2(VkState & vk, Vector<ViewData*> views, RenderData& renderData, RenderModel& model, Mesh& screenQuad, LvkIm3dState& im3dState, DeferredLightData& lightData)
+void RecordCommandBuffersV2(VkState & vk, Vector<ViewData*> views, RenderData& renderData, RenderModel& model, Mesh& screenQuad, VkuIm3dState& im3dState, DeferredLightData& lightData)
 {
     static StaticVector<VertexDataPosUv> originalScreenQuadData = {
                     { { -1.0f, -1.0f , 0.0f}, { 0.0f, 0.0f } },
@@ -167,7 +167,7 @@ void RecordCommandBuffersV2(VkState & vk, Vector<ViewData*> views, RenderData& r
                     { {1.0f, 1.0f, 0.0f}, {1.0, 1.0} },
                     { {-1.0f, 1.0f, 0.0f}, {0.0f, 1.0} }
     };
-    lvk::commands::RecordGraphicsCommands(vk, [&](VkCommandBuffer& commandBuffer, uint32_t frameIndex) {
+    vku::commands::RecordGraphicsCommands(vk, [&](VkCommandBuffer& commandBuffer, uint32_t frameIndex) {
         {
             debug::BeginDebugMarker(commandBuffer, "Clear Swapchain");
             Array<VkClearValue, 2> clearValues{};
@@ -484,8 +484,8 @@ int main() {
     bool enableMSAA = false;
     VkState vk = init::Create<VkSDL>("Im3D Multiview", 1920, 1080, enableMSAA);
 
-    LVK_LOG_INFO("vkCmdBeginRenderingKHR : addr : %ull", (void*) *vkCmdBeginRenderingKHR);
-    LVK_LOG_INFO("vkCmdEndRenderingKHR : addr : %ull", (void*) *vkCmdEndRenderingKHR);
+    VKU_LOG_INFO("vkCmdBeginRenderingKHR : addr : %ull", (void*) *vkCmdBeginRenderingKHR);
+    VKU_LOG_INFO("vkCmdEndRenderingKHR : addr : %ull", (void*) *vkCmdEndRenderingKHR);
 
     auto im3dState = LoadIm3D(vk);
 

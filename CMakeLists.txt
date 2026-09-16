@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(lvk-all)
+project(vku-all)
 
 set(CMAKE_CXX_STANDARD 20)
 
@@ -34,7 +34,7 @@ set_target_properties(glm PROPERTIES			FOLDER "ThirdParty/glm")
 set_target_properties(SDL3_test PROPERTIES		FOLDER "ThirdParty/SDL")
 set_target_properties(SDL3-static PROPERTIES	FOLDER "ThirdParty/SDL")
 
-add_subdirectory(lvk)
+add_subdirectory(vku)
 add_subdirectory(backends/sdl)
 add_subdirectory(examples/msaa)
 add_subdirectory(examples/nanovg)
@@ -42,4 +42,3 @@ add_subdirectory(examples/lights-forward)
 add_subdirectory(examples/im3d-multiview)
 add_subdirectory(examples/compute)
 add_subdirectory(examples/dynamic-rendering)
-add_subdirectory(examples/tiled-forward)

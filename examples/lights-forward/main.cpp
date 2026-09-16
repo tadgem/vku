@@ -1,6 +1,6 @@
 #include "example-common.h"
-#include "lvk/Shader.h"
-using namespace lvk;
+#include "vku/Shader.h"
+using namespace vku;
 
 #define NUM_LIGHTS 16
 using ForwardLightData = FrameLightDataT<NUM_LIGHTS>;
@@ -8,7 +8,7 @@ static ForwardLightData lightDataCpu {};
 
 void RecordGraphicsCommandBuffers(VkState & vk, VkPipelineData& pipeline, Model& model, Material& mat)
 {
-    lvk::commands::RecordGraphicsCommands(vk, [&](VkCommandBuffer& commandBuffer, uint32_t frameIndex) {
+    vku::commands::RecordGraphicsCommands(vk, [&](VkCommandBuffer& commandBuffer, uint32_t frameIndex) {
 
         render_passes::BeginSwapchainRenderPass(vk, commandBuffer);
 
@@ -113,7 +113,7 @@ int main()
 
     // Pipeline stage?
     auto vertexDescription = VertexDataPosNormalUv::GetVertexDescription(*vk.m_CPUAllocator);
-    VkPipelineData pipeline = lvk::pipelines::CreateRasterPipeline(vk,
+    VkPipelineData pipeline = vku::pipelines::CreateRasterPipeline(vk,
         lights_prog,vertexDescription, defaults::CullNoneRasterStateMSAA,
         vk.m_SwapchainImageRenderPass, vk.m_SwapChainImageExtent);
 
@@ -123,7 +123,7 @@ int main()
 
     if(!m.SetSampler(vk, "texSampler", model.m_Materials.front().m_Diffuse))
     {
-        LVK_LOG_ERR("Failed to set diffuse texture for forward lighting shader");
+        VKU_LOG_ERR("Failed to set diffuse texture for forward lighting shader");
     }
 
     while (vk.m_ShouldRun)

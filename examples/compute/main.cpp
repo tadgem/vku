@@ -1,8 +1,8 @@
 #include "example-common.h"
-#include "lvk/Shader.h"
+#include "vku/Shader.h"
 #include <random>
 
-using namespace lvk;
+using namespace vku;
 
 #define NUM_LIGHTS 16
 using ForwardLightData = FrameLightDataT<NUM_LIGHTS>;
@@ -12,7 +12,7 @@ struct Particle
   glm::vec2 velocity;
   glm::vec4 colour;
 
-  static lvk::Vector<VkVertexInputAttributeDescription> GetAttributeDescriptions(IAllocator& alloc)
+  static vku::Vector<VkVertexInputAttributeDescription> GetAttributeDescriptions(IAllocator& alloc)
   {
     Vector<VkVertexInputAttributeDescription> attrs (alloc);
     attrs.resize(2);
@@ -127,7 +127,7 @@ void CreateGraphicsDescriptorSets(VkState & vk, VkDescriptorSetLayout& descripto
 
 void RecordComputeCommandBuffers(VkState& vk, VkPipeline& p, VkPipelineLayout& layout, Array<VkDescriptorSet, MAX_FRAMES_IN_FLIGHT>& computeDescriptors)
 {
-  lvk::commands::RecordComputeCommands(vk, [&](VkCommandBuffer& cmd, uint32_t frameIndex)
+  vku::commands::RecordComputeCommands(vk, [&](VkCommandBuffer& cmd, uint32_t frameIndex)
   {
       vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, p);
       vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, layout, 0, 1, &computeDescriptors[frameIndex], 0,0);
@@ -139,7 +139,7 @@ void RecordGraphicsCommandBuffers(VkState & vk,
                                   VkPipelineData& particlePipeline,
                                   std::vector<Buffer>& particleBuffers)
 {
-    lvk::commands::RecordGraphicsCommands(vk, [&](VkCommandBuffer& commandBuffer, uint32_t frameIndex) {
+    vku::commands::RecordGraphicsCommands(vk, [&](VkCommandBuffer& commandBuffer, uint32_t frameIndex) {
         // push to example
         std::array<VkClearValue, 2> clearValues{};
         clearValues[0].color = { {0.0f, 0.0f, 0.0f, 1.0f} };
@@ -395,7 +395,7 @@ int main()
     RasterizationState rasterState = {VK_POLYGON_MODE_FILL, VK_CULL_MODE_NONE, false, VK_COMPARE_OP_ALWAYS,VK_PRIMITIVE_TOPOLOGY_POINT_LIST };
 
     auto particleVertexDescription = Particle::GetVertexDescription(*vk.m_CPUAllocator);
-    VkPipelineData particlePipeline = lvk::pipelines::CreateRasterPipeline(
+    VkPipelineData particlePipeline = vku::pipelines::CreateRasterPipeline(
         vk, draw_particles, particleVertexDescription, rasterState,
         vk.m_SwapchainImageRenderPass, vk.m_SwapChainImageExtent);
 

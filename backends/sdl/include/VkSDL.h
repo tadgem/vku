@@ -1,8 +1,8 @@
 #pragma once
 #include "SDL3/SDL.h"
-#include "lvk/Structs.h"
+#include "vku/Structs.h"
 #undef main // why is this a thing SDL?!
-namespace lvk {
+namespace vku {
 	class VulkanAPIWindowHandle_SDL : public VulkanAPIWindowHandle
 	{
 	public:
@@ -19,7 +19,7 @@ namespace lvk {
           virtual Vector<const char*>
           GetRequiredInstanceExtensions(VkState& vk) override;
           virtual void 			CreateSurface(VkState& vk) override;
-          virtual void 			CreateWindowLVK(VkState& vk, uint32_t width, uint32_t height) override
+          virtual void 			CreateWindowVKU(VkState& vk, uint32_t width, uint32_t height) override
           {
                   SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS);
                   SDL_Window* window = SDL_CreateWindow(vk.m_AppName.c_str(), width, height, SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE);

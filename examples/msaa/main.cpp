@@ -1,11 +1,11 @@
 #include "example-common.h"
-#include "lvk/Shader.h"
-using namespace lvk;
+#include "vku/Shader.h"
+using namespace vku;
 
 
 void RecordGraphicsCommandBuffers(VkState & vk, VkPipelineData& pipeline,  Model& model, Vector<VkDescriptorSet>& descriptorSets)
 {
-    lvk::commands::RecordGraphicsCommands(vk, [&](VkCommandBuffer& commandBuffer, uint32_t frameIndex) {
+    vku::commands::RecordGraphicsCommands(vk, [&](VkCommandBuffer& commandBuffer, uint32_t frameIndex) {
         // push to example
         std::array<VkClearValue, 2> clearValues{};
         clearValues[0].color = { {0.0f, 0.0f, 0.0f, 1.0f} };
@@ -145,7 +145,7 @@ int main()
     textures::CreateImageSampler(vk, mipLevels, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_REPEAT, imageSampler);
 
     auto vertexDescription = VertexDataPosUv::GetVertexDescription(*vk.m_CPUAllocator);
-    VkPipelineData pipeline = lvk::pipelines::CreateRasterPipeline(vk,
+    VkPipelineData pipeline = vku::pipelines::CreateRasterPipeline(vk,
         prog, vertexDescription, defaults::CullNoneRasterStateMSAA,
         vk.m_SwapchainImageRenderPass, vk.m_SwapChainImageExtent);
 

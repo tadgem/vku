@@ -471,12 +471,12 @@ static void ImGui_ImplSDL3_SetupPlatformHandles(ImGuiViewport* viewport, SDL_Win
 #endif
 }
 
-static const char* LVK_GetClipboardTextFn(void* user_data)
+static const char* VKU_GetClipboardTextFn(void* user_data)
 {
     return ImGui_ImplSDL3_GetClipboardText((ImGuiContext*) user_data);
 }
 
-static void LVK_SetClipboardTextFn(void* user_data, const char* text)
+static void VKU_SetClipboardTextFn(void* user_data, const char* text)
 {
     ImGui_ImplSDL3_SetClipboardText((ImGuiContext*) user_data, text);
 }
@@ -522,8 +522,8 @@ static bool ImGui_ImplSDL3_Init(SDL_Window* window, SDL_Renderer* renderer, void
 #endif
 
     auto& platform_io = ImGui::GetIO();
-    platform_io.SetClipboardTextFn = LVK_SetClipboardTextFn;
-    platform_io.GetClipboardTextFn = LVK_GetClipboardTextFn;
+    platform_io.SetClipboardTextFn = VKU_SetClipboardTextFn;
+    platform_io.GetClipboardTextFn = VKU_GetClipboardTextFn;
 
     // Update monitor a first time during init
     ImGui_ImplSDL3_UpdateMonitors();

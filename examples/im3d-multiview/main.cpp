@@ -1,11 +1,11 @@
 #include "example-common.h"
-#include "lvk/Shader.h"
-#include "lvk/Material.h"
+#include "vku/Shader.h"
+#include "vku/Material.h"
 #include <algorithm>
-#include "Im3D/im3d_lvk.h"
-#include "ImGui/lvk_extensions.h"
+#include "Im3D/im3d_vku.h"
+#include "ImGui/vku_extensions.h"
 
-using namespace lvk;
+using namespace vku;
 
 struct ViewData
 {
@@ -15,8 +15,8 @@ struct ViewData
     Material    m_LightPassMaterial;
 
     VkPipelineData    m_GBufferPipeline, m_LightPassPipeline;
-    LvkIm3dViewState  m_Im3dState;
-    LvkIm3dViewState  m_DeferredIm3dState;
+    VkuIm3dViewState  m_Im3dState;
+    VkuIm3dViewState  m_DeferredIm3dState;
     VkRenderPass      m_Im3dRenderPass = VK_NULL_HANDLE;
     Vector<VkFramebuffer> m_Im3dFramebuffers;
     VkExtent2D        m_CurrentResolution{ 1920, 1080 };
@@ -27,7 +27,7 @@ struct ViewData
 
 static Transform g_Transform;
 
-ViewData CreateView(VkState & vk, LvkIm3dState im3dState, ShaderProgram gbufferProg, ShaderProgram lightPassProg)
+ViewData CreateView(VkState & vk, VkuIm3dState im3dState, ShaderProgram gbufferProg, ShaderProgram lightPassProg)
 {
     Framebuffer gbuffer(*vk.m_CPUAllocator);
     gbuffer.AddColourAttachment(vk,
@@ -55,14 +55,14 @@ ViewData CreateView(VkState & vk, LvkIm3dState im3dState, ShaderProgram gbufferP
 
     // create gbuffer pipeline
     auto vertexDescription = VertexDataPosNormalUv::GetVertexDescription(*vk.m_CPUAllocator);
-    VkPipelineData gbufferPipeline = lvk::pipelines::CreateRasterPipeline(vk,
+    VkPipelineData gbufferPipeline = vku::pipelines::CreateRasterPipeline(vk,
         gbufferProg,vertexDescription, defaults::DefaultRasterState,
         gbuffer.m_RenderPassInfo.m_RenderPass, vk.m_SwapChainImageExtent, 3);
 
     // create present graphics pipeline
     // Pipeline stage?
     auto presentVertexDescription = VertexDataPosUv::GetVertexDescription(*vk.m_CPUAllocator);
-    VkPipelineData pipeline = lvk::pipelines::CreateRasterPipeline(vk,
+    VkPipelineData pipeline = vku::pipelines::CreateRasterPipeline(vk,
         lightPassProg, presentVertexDescription, defaults::CullNoneRasterState,
         finalImage.m_RenderPassInfo.m_RenderPass, vk.m_SwapChainImageExtent);
 
@@ -173,7 +173,7 @@ void UpdateViewData(VkState & vk, ViewData* view, DeferredLightData& lightData)
     view->m_LightPassMaterial.SetBuffer(vk.m_CurrentFrameIndex, 0, 3, lightData);
 }
 
-void RecordCommandBuffersV2(VkState & vk, Vector<ViewData*> views, RenderModel& model, Mesh& screenQuad, LvkIm3dState& im3dState, DeferredLightData& lightData)
+void RecordCommandBuffersV2(VkState & vk, Vector<ViewData*> views, RenderModel& model, Mesh& screenQuad, VkuIm3dState& im3dState, DeferredLightData& lightData)
 {
     static StaticVector<VertexDataPosUv> originalScreenQuadData = {
                     { { -1.0f, -1.0f , 0.0f}, { 0.0f, 0.0f } },
@@ -181,7 +181,7 @@ void RecordCommandBuffersV2(VkState & vk, Vector<ViewData*> views, RenderModel& 
                     { {1.0f, 1.0f, 0.0f}, {1.0, 1.0} },
                     { {-1.0f, 1.0f, 0.0f}, {0.0f, 1.0} }
     };
-    lvk::commands::RecordGraphicsCommands(vk, [&](VkCommandBuffer& commandBuffer, uint32_t frameIndex) {
+    vku::commands::RecordGraphicsCommands(vk, [&](VkCommandBuffer& commandBuffer, uint32_t frameIndex) {
         {
             Array<VkClearValue, 4> clearValues{};
             clearValues[0].color = { {0.0f, 0.0f, 0.0f, 1.0f} };
