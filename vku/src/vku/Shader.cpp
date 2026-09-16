@@ -1,21 +1,48 @@
 #include "vku/Shader.h"
-#include "vku/Macros.h"
-#include "vku/Log.h"
-#include "volk.h"
 #include "shaderc/shaderc.h"
+#include "slang.h"
+#include "vku/Log.h"
+#include "vku/Macros.h"
+#include "volk.h"
+
 #include VKU_FILESYSTEM_ALIAS
 #include VKU_STRING_STREAM_ALIAS
 #include VKU_REGEX_ALIAS
 
 namespace vku {
 
-ShaderStage::ShaderStage(IAllocator& alloc) :
-    m_PushConstants(alloc),
-    m_LayoutDatas(alloc),
-    m_StageBinary(alloc),
-    m_Name(alloc)
-{
+// #ifdef VKU_RT_SHADER_COMPILATION
+static slang::IGlobalSession *g_Slang = nullptr;
+
+static void InitializeSlang() {
+  if (SLANG_FAILED(slang::createGlobalSession(&g_Slang))) {
+    VKU_LOG_ERR("Failed to create slang::IGlobalSession");
+  }
 }
+
+static slang::ISession *GetSlangSession() {
+  if (g_Slang == nullptr) {
+    InitializeSlang();
+  }
+  slang::TargetDesc targetDesc = {};
+  targetDesc.format = SLANG_SPIRV;
+  targetDesc.profile = g_Slang->findProfile("spirv_1_5");
+
+  slang::SessionDesc sessionDesc = {};
+  sessionDesc.targets = &targetDesc;
+  sessionDesc.targetCount = 1;
+
+  slang::ISession *session = nullptr;
+  g_Slang->createSession(sessionDesc, &session);
+
+  return session;
+}
+
+// #endif
+
+ShaderStage::ShaderStage(IAllocator &alloc)
+    : m_PushConstants(alloc), m_LayoutDatas(alloc), m_StageBinary(alloc),
+      m_Name(alloc) {}
 
 void ShaderProgram::Free(VkState &vk) {
   vkDestroyDescriptorSetLayout(vk.m_LogicalDevice, m_DescriptorSetLayout,
@@ -37,25 +64,55 @@ ShaderProgram ShaderProgram::CreateCompute(VkState &vk, ShaderStage &compute) {
   layoutInfo.pBindings = bindings.data();
 
   VK_CHECK(vkCreateDescriptorSetLayout(vk.m_LogicalDevice, &layoutInfo, nullptr,
-      &layout))
+                                       &layout))
 
   Vector<ShaderStage> stages(*vk.m_CPUAllocator);
   stages.push_back(compute);
-  auto shader =  ShaderProgram(*vk.m_CPUAllocator, stages, layout);
+  auto shader = ShaderProgram(*vk.m_CPUAllocator, stages, layout);
   return shader;
 }
+Optional<ShaderProgram>
+ShaderProgram::CreateShaderSlang(VkState &vk, const String &name,
+                                 const Span<String> &entries) {
 
-ShaderProgram::ShaderProgram(
-    IAllocator& alloc, 
-    Vector<ShaderStage> shaderStages,
-    VkDescriptorSetLayout layout) :
-    
-    m_DescriptorSetLayout(layout), 
-    m_Stages(shaderStages),
-    m_PushConstantRanges(alloc)
-{
+  slang::IBlob *diagnostics = nullptr;
+
+  auto *session = GetSlangSession();
+  auto *module = session->loadModule(name.c_str());
+
+  if (!module) {
+    VKU_LOG_ERR("Failed to load shader {}", name.c_str());
+    return {};
+  }
+  Vector<slang::IComponentType *> components(*vk.m_CPUAllocator);
+  // reserve space for entry points + module
+  components.reserve(entries.size() + 1);
+  components.push_back(module);
+
+  for (const auto &entry : entries) {
+    slang::IEntryPoint *ep = {};
+    module->findEntryPointByName(entry.c_str(), &ep);
+
+    if (ep) {
+      components.push_back(ep);
+    }
+  }
+
+  slang::IComponentType *linkedProgram = nullptr;
+  session->createCompositeComponentType(components.data(), components.size(),
+                                        &linkedProgram, &diagnostics);
+}
+
+ShaderProgram::ShaderProgram(IAllocator &alloc,
+                             Vector<ShaderStage> shaderStages,
+                             VkDescriptorSetLayout layout)
+    :
+
+      m_DescriptorSetLayout(layout), m_Stages(shaderStages),
+      m_PushConstantRanges(alloc) {
   BuildPushConstantRanges();
 }
+
 void ShaderProgram::BuildPushConstantRanges() {
   // update
   // valid combos:
@@ -69,8 +126,8 @@ void ShaderProgram::BuildPushConstantRanges() {
     }
 
     if (stage.m_PushConstants.size() > 1) {
-      VKU_LOG_ERR(
-          "VulkanAPI : CreateRasterizationPipeline : Supplied stage has more than 1 push constant block, this is not allowed.");
+      VKU_LOG_ERR("VulkanAPI : CreateRasterizationPipeline : Supplied stage "
+                  "has more than 1 push constant block, this is not allowed.");
       continue;
     }
 
@@ -105,9 +162,8 @@ VkPipelineLayoutCreateInfo ShaderProgram::GetPipelineLayoutCreateInfo() {
   pipelineLayoutInfo.setLayoutCount = 1;
   pipelineLayoutInfo.pSetLayouts = &m_DescriptorSetLayout;
   pipelineLayoutInfo.pushConstantRangeCount = GetPushConstantRangeCount();
-  pipelineLayoutInfo.pPushConstantRanges = !m_PushConstantRanges.empty() ?
-                                            m_PushConstantRanges.data() :
-                                            nullptr;
+  pipelineLayoutInfo.pPushConstantRanges =
+      !m_PushConstantRanges.empty() ? m_PushConstantRanges.data() : nullptr;
 
   return pipelineLayoutInfo;
 }
@@ -126,7 +182,6 @@ VkShaderModule CreateShaderModule(VkState &vk, const StageBinary &data) {
   return shaderModule;
 }
 
-
 VkShaderModule CreateShaderModuleRaw(VkState &vk, const char *data,
                                      size_t length) {
   VkShaderModuleCreateInfo createInfo{};
@@ -142,48 +197,41 @@ VkShaderModule CreateShaderModuleRaw(VkState &vk, const char *data,
   return shaderModule;
 }
 
-shaderc_shader_kind GetShadercShaderKind(vku::ShaderStageType type)
-{
-  switch(type)
-  {
-    case vku::ShaderStageType::Vertex:
-      return shaderc_shader_kind ::shaderc_glsl_vertex_shader;
-    case vku::ShaderStageType::Fragment:
-      return shaderc_shader_kind ::shaderc_glsl_fragment_shader;
-    case vku::ShaderStageType::Compute:
-      return shaderc_shader_kind ::shaderc_glsl_compute_shader;
-    default:
-      return shaderc_shader_kind ::shaderc_compute_shader;
+shaderc_shader_kind GetShadercShaderKind(vku::ShaderStageType type) {
+  switch (type) {
+  case vku::ShaderStageType::Vertex:
+    return shaderc_shader_kind ::shaderc_glsl_vertex_shader;
+  case vku::ShaderStageType::Fragment:
+    return shaderc_shader_kind ::shaderc_glsl_fragment_shader;
+  case vku::ShaderStageType::Compute:
+    return shaderc_shader_kind ::shaderc_glsl_compute_shader;
+  default:
+    return shaderc_shader_kind ::shaderc_compute_shader;
   }
 }
 
 StageBinary CreateStageBinaryFromSource(VkState &vk, ShaderStageType type,
-                                    const String &source, const char* shaderName) {
-  shaderc_compiler* c = shaderc_compiler_initialize();
-  shaderc_compile_options_t opt {};
+                                        const String &source,
+                                        const char *shaderName) {
+  shaderc_compiler *c = shaderc_compiler_initialize();
+  shaderc_compile_options_t opt{};
 
-  auto result = shaderc_compile_into_spv(c,
-                          source.c_str(),
-                          source.size(),
-                          GetShadercShaderKind(type),
-                          shaderName,
-                          "main",
-                           opt);
+  auto result = shaderc_compile_into_spv(c, source.c_str(), source.size(),
+                                         GetShadercShaderKind(type), shaderName,
+                                         "main", opt);
 
-  const char* spirv_bytes = shaderc_result_get_bytes(result);
-  size_t      spirv_size  = shaderc_result_get_length(result);
-  StageBinary bin (*vk.m_CPUAllocator);
-  if(shaderc_result_get_num_errors(result) != 0)
-  {
-      VKU_LOG_ERR("Failed to compile shader : %s",
-                    shaderc_result_get_error_message(result));
-      return bin;
+  const char *spirv_bytes = shaderc_result_get_bytes(result);
+  size_t spirv_size = shaderc_result_get_length(result);
+  StageBinary bin(*vk.m_CPUAllocator);
+  if (shaderc_result_get_num_errors(result) != 0) {
+    VKU_LOG_ERR("Failed to compile shader : %s",
+                shaderc_result_get_error_message(result));
+    return bin;
   }
 
   bin.resize(spirv_size);
-  for(auto i = 0; i < spirv_size; i++)
-  {
-      bin[i] = spirv_bytes[i];
+  for (auto i = 0; i < spirv_size; i++) {
+    bin[i] = spirv_bytes[i];
   }
 
   shaderc_result_release(result);
@@ -192,8 +240,8 @@ StageBinary CreateStageBinaryFromSource(VkState &vk, ShaderStageType type,
   return bin;
 }
 
-void RecurseStringInclude(VkState& vk, String inputDir, String& output, const String& path)
-{
+void RecurseStringInclude(VkState &vk, String inputDir, String &output,
+                          const String &path) {
   String input(*vk.m_CPUAllocator);
   String dir(*vk.m_CPUAllocator);
   String finalDir = inputDir + "/" + path;
@@ -201,41 +249,36 @@ void RecurseStringInclude(VkState& vk, String inputDir, String& output, const St
   dir = std::filesystem::path(path).parent_path().string();
   IStringStream iss(input);
   std::regex include_dir_regex("\\\"(.*)\\\"");
-  for (std::string line; std::getline(iss, line); )
-  {
-      if(line.find("#include") != String::npos)
-      {
-        auto words_begin =
-            std::sregex_iterator(line.begin(), line.end(), include_dir_regex);
-        auto words_end = std::sregex_iterator();
-        for (std::sregex_iterator i = words_begin; i != words_end; ++i)
-        {
-          const std::smatch& match = *i;
-          // remove first and last ""
-          String include_dir(*vk.m_CPUAllocator);
-          include_dir = match.str().substr(1, match.str().size() - 2);
-          RecurseStringInclude(vk, inputDir, output, include_dir);
-        }
+  for (std::string line; std::getline(iss, line);) {
+    if (line.find("#include") != String::npos) {
+      auto words_begin =
+          std::sregex_iterator(line.begin(), line.end(), include_dir_regex);
+      auto words_end = std::sregex_iterator();
+      for (std::sregex_iterator i = words_begin; i != words_end; ++i) {
+        const std::smatch &match = *i;
+        // remove first and last ""
+        String include_dir(*vk.m_CPUAllocator);
+        include_dir = match.str().substr(1, match.str().size() - 2);
+        RecurseStringInclude(vk, inputDir, output, include_dir);
+      }
 
-        RecurseStringInclude(vk, dir, output, input);
-      }
-      else
-      {
-        output += line + "\n";
-      }
+      RecurseStringInclude(vk, dir, output, input);
+    } else {
+      output += line + "\n";
+    }
   }
 }
 
-String ShaderStage::LoadShaderSource(VkState& vk, const char* path) {
+String ShaderStage::LoadShaderSource(VkState &vk, const char *path) {
   String final_shader_src(*vk.m_CPUAllocator);
   String parent_path(*vk.m_CPUAllocator);
   String filename(*vk.m_CPUAllocator);
   std::filesystem::path inputPath(path);
   parent_path = inputPath.parent_path().string();
   filename = inputPath.filename().string();
-  
+
   RecurseStringInclude(vk, parent_path, final_shader_src, filename);
   // do includes
   return final_shader_src;
 }
-}
+} // namespace vku

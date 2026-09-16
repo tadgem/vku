@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.14)
 project(vku)
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 option(VKU_RT_SHADER_COMPILATION "Enable Runtime Shader Compilation" TRUE)
 
 set(VKU_SRCS
@@ -75,6 +75,10 @@ if(VKU_RT_SHADER_COMPILATION)
     set(VKU_COMPILE_DEFS ${VKU_COMPILE_DEFS} "/DVKU_RT_SHADER_COMPILATION")
 endif()
 
+if(VKU_ENABLE_SLANG)
+    set(VKU_COMPILE_DEFS ${VKU_COMPILE_DEFS} "/DVKU_ENABLE_SLANG")
+endif()
+
 add_library(${PROJECT_NAME}
     ${VKU_SRCS}
 )
@@ -99,3 +103,7 @@ target_compile_options( ${PROJECT_NAME} INTERFACE ${VKU_COMPILE_DEFS})
 target_link_options(    ${PROJECT_NAME} PUBLIC  "/fsanitize=address")
 
 target_link_libraries(${PROJECT_NAME} volk shaderc shaderc_util)
+
+if(VKU_ENABLE_SLANG)
+    target_link_libraries(${PROJECT_NAME} slang)
+endif()

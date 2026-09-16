@@ -9,6 +9,7 @@
 - Backend API to allow multiple windowing systems (currently an SDL impl)
 - Custom allocator support (Used internally, optional in dependencies)
 - Runtime shader compilation (Optional, through shaderc submodule)
+- Slang shader compiler runtime (Optional, on by default via `VKU_ENABLE_SLANG`, through slang submodule)
 
 ### To get started, run the following command in the root dir of this repo:
 ```

@@ -140,6 +140,8 @@ namespace vku
             ShaderStage comp = ShaderStage::CreateFromSourcePath(vk, compute_src_path, ShaderStageType::Compute);
             return CreateCompute(vk, comp);
         }
+
+        static Optional<ShaderProgram> CreateShaderSlang(VkState& vk, const String& name, const Span<String>& entries);
     };
 
 }

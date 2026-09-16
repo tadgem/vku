@@ -5,12 +5,14 @@
 #include VKU_IOSTREAM_ALIAS
 #include VKU_UNORDERED_MAP_ALIAS
 #include VKU_VECTOR_ALIAS
+#include VKU_SPAN_ALIAS
 #include VKU_FUNCTIONAL_ALIAS
 #include VKU_ARRAY_ALIAS
 #include VKU_OPTIONAL_ALIAS
 #include VKU_MEMORY_ALIAS
 #include VKU_STRING_ALIAS
 #include VKU_STRING_STREAM_ALIAS
+
 
 namespace vku
 {
@@ -28,6 +30,9 @@ namespace vku
 
 	template<typename _Ty, size_t _Size>
 	using Array = VKU_ARRAY_NS::array<_Ty, _Size>;
+
+	template<typename _Ty>
+	using Span = VKU_SPAN_NS::span<_Ty>;
 
 	template<typename _Key, typename _Value>
 	using HashMap = VKU_UNORDERED_MAP_NS::unordered_map<

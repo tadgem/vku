@@ -25,3 +25,6 @@
 [submodule "submodules/sdl"]
 	path = submodules/sdl
 	url = https://github.com/libsdl-org/SDL.git
+[submodule "submodules/slang"]
+	path = submodules/slang
+	url = https://github.com/shader-slang/slang.git

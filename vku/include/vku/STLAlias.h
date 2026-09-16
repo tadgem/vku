@@ -16,6 +16,11 @@
 	#define VKU_ARRAY_NS std
 #endif
 
+#ifndef VKU_SPAN_ALIAS
+	#define VKU_SPAN_ALIAS <span>
+	#define VKU_SPAN_NS std
+#endif
+
 #ifndef VKU_FUNCTIONAL_ALIAS
 	#define VKU_FUNCTIONAL_ALIAS <functional>
 	#define VKU_FUNCTIONAL_NS std

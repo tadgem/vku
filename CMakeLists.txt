@@ -1,7 +1,7 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.22)
 project(vku-all)
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 
 set(SDL_STATIC TRUE CACHE INTERNAL TRUE)
 set(CMAKE_SUPPRESS_REGENERATION true)
@@ -21,13 +21,34 @@ add_subdirectory(submodules/SPIRV-tools)
 add_subdirectory(submodules/glslang)
 add_subdirectory(submodules/shaderc)
 
+option(VKU_ENABLE_SLANG "Pull in the Slang shader compiler runtime" ON)
+
+if(VKU_ENABLE_SLANG)
+    # Embed only the Slang compiler runtime, not its tools, tests or examples.
+    set(SLANG_LIB_TYPE STATIC CACHE STRING "" FORCE)
+    set(SLANG_ENABLE_TESTS OFF CACHE BOOL "" FORCE)
+    set(SLANG_ENABLE_EXAMPLES OFF CACHE BOOL "" FORCE)
+    set(SLANG_ENABLE_GFX OFF CACHE BOOL "" FORCE)
+    set(SLANG_ENABLE_SLANGC OFF CACHE BOOL "" FORCE)
+    set(SLANG_ENABLE_SLANGD OFF CACHE BOOL "" FORCE)
+    set(SLANG_ENABLE_REPLAYER OFF CACHE BOOL "" FORCE)
+    set(SLANG_ENABLE_SLANG_RHI OFF CACHE BOOL "" FORCE)
+    # shaderc already provides the glslang and SPIRV-Tools targets, so skip Slang's copies.
+    set(SLANG_ENABLE_SLANG_GLSLANG OFF CACHE BOOL "" FORCE)
+    # Vulkan only needs Slang's native SPIR-V backend, so skip the DXIL and
+    # LLVM toolchains (which would otherwise be downloaded at configure time).
+    set(SLANG_ENABLE_DXIL OFF CACHE BOOL "" FORCE)
+    set(SLANG_SLANG_LLVM_FLAVOR DISABLE CACHE STRING "" FORCE)
+
+    add_subdirectory(submodules/slang)
+endif()
+
 set(ASSIMP_INCLUDES		${CMAKE_CURRENT_SOURCE_DIR}/submodules/assimp/include CACHE INTERNAL "")
 set(GLM_INCLUDES		${CMAKE_CURRENT_SOURCE_DIR}/submodules/glm CACHE INTERNAL "")
 set(SPDLOG_INCLUDES		${CMAKE_CURRENT_SOURCE_DIR}/submodules/spdlog/include CACHE INTERNAL "")
 set(SDL_INCLUDES		${CMAKE_CURRENT_SOURCE_DIR}/third-party/sdl/include CACHE INTERNAL "")
 set(SHADERC_INCLUDES	${CMAKE_CURRENT_SOURCE_DIR}/submodules/shaderc/libshaderc/include CACHE INTERNAL "")
 set(CPPTRACE_INCLUDES	${CMAKE_CURRENT_SOURCE_DIR}/submodules/cpptrace/include CACHE INTERNAL "")
-
 set(SHADERC_UTIL_INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/submodules/shaderc/libshaderc_util/include CACHE INTERNAL "")
 
 set_target_properties(glm PROPERTIES			FOLDER "ThirdParty/glm")
