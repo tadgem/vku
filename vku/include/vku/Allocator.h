@@ -1,5 +1,6 @@
 #pragma once
 #include "Alias.h"
+#include "Allocator.h"
 #include "STLAlias.h"
 #include <cstdlib>
 
@@ -8,9 +9,9 @@ class IAllocator;
 
 template <class T> struct STLAllocator {
   typedef T value_type;
-  IAllocator &_allocator;
+  IAllocator *_allocator;
 
-  STLAllocator(IAllocator &alloc)
+  STLAllocator(IAllocator *alloc = nullptr)
       : _allocator(alloc) {
   } // default ctor not required by C++ Standard Library
 
@@ -23,11 +24,26 @@ template <class T> struct STLAllocator {
   template <class U> bool operator!=(const STLAllocator<U> &) const {
     return false;
   }
-  T *allocate(const size_t n) const {
-    return static_cast<T *>(_allocator.allocate(sizeof(T) * n));
+
+  static T *fallback_allocate(const size_t n) {
+    // log error or warning
+    return static_cast<T *>(std::malloc(sizeof(T) * n));
   }
-  void deallocate(T *const p, size_t) const {
-    _allocator.deallocate((void *)p);
+
+  static void fallback_deallocate(T *const p, size_t) { std::free(p); }
+
+  T *allocate(const size_t n) const {
+    if (_allocator == nullptr) {
+      return fallback_allocate(n);
+    }
+    return static_cast<T *>(_allocator->allocate(sizeof(T) * n));
+  }
+  void deallocate(T *const p, size_t n) const {
+    if (_allocator == nullptr) {
+      fallback_deallocate(p, n);
+    } else {
+      _allocator->deallocate((void *)p);
+    }
   }
 };
 
@@ -39,7 +55,7 @@ public:
   virtual ~IAllocator() {}
 
   template <typename T> operator STLAllocator<T>() noexcept {
-    return STLAllocator<T>(*this);
+    return STLAllocator<T>(this);
   }
 };
 
@@ -47,6 +63,6 @@ class MallocAllocator : public IAllocator {
 public:
   void *allocate(size_t size) override { return VKU_MEMORY_NS::malloc(size); }
 
-  void deallocate(void *addr) { VKU_MEMORY_NS::free(addr); }
+  void deallocate(void *addr) override { VKU_MEMORY_NS::free(addr); }
 };
 } // namespace vku

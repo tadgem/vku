@@ -71,10 +71,6 @@ set(VKU_SRCS
 
 set(VKU_COMPILE_DEFS "/DIMGUI_IMPL_VULKAN_USE_VOLK")
 
-if (VKU_RT_SHADER_COMPILATION)
-    set(VKU_COMPILE_DEFS ${VKU_COMPILE_DEFS} "/DVKU_RT_SHADER_COMPILATION")
-endif ()
-
 if (VKU_ENABLE_SLANG)
     set(VKU_COMPILE_DEFS ${VKU_COMPILE_DEFS} "/DVKU_ENABLE_SLANG")
 endif ()
@@ -102,7 +98,7 @@ endif ()
 target_compile_options(${PROJECT_NAME} INTERFACE ${VKU_COMPILE_DEFS})
 target_link_options(${PROJECT_NAME} PUBLIC "/fsanitize=address")
 
-target_link_libraries(${PROJECT_NAME} volk shaderc shaderc_util)
+target_link_libraries(${PROJECT_NAME} volk)
 
 if (VKU_ENABLE_SLANG)
     target_link_libraries(${PROJECT_NAME} slang)

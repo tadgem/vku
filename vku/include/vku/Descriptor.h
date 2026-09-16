@@ -5,12 +5,12 @@
 namespace vku {
 namespace descriptor {
 
-Vector<VkDescriptorSetLayoutBinding> GetDescriptorSetLayoutBindings(
-    VkState &vk, Vector<DescriptorSetLayoutData> &vertLayoutDatas,
-    Vector<DescriptorSetLayoutData> &fragLayoutDatas);
+Vector<VkDescriptorSetLayoutBinding>
+GetDescriptorSetLayoutBindings(VkState &vk,
+                               Vector<DescriptorSetLayoutData> &layoutDatas);
+
 void CreateDescriptorSetLayout(VkState &vk,
-                               Vector<DescriptorSetLayoutData> &vertLayoutDatas,
-                               Vector<DescriptorSetLayoutData> &fragLayoutDatas,
+                               Vector<DescriptorSetLayoutData> &layoutData,
                                VkDescriptorSetLayout &descriptorSetLayout);
 
 Vector<DescriptorSetLayoutData>
@@ -29,4 +29,4 @@ VkDescriptorSet CreateDescriptorSet(VkState &vk,
 ShaderBufferMemberType
 GetTypeFromSpvReflect(SpvReflectTypeDescription *typeDescription);
 } // namespace descriptor
-}
+} // namespace vku

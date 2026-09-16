@@ -228,10 +228,8 @@ VkPipelineData CreateRasterPipeline(VkState &vk, ShaderProgram &shader,
                                     VkExtent2D resolution,
                                     uint32_t colorAttachmentCount) {
 
-  VkShaderModule vertShaderModule =
-      CreateShaderModule(vk, shader.m_Stages[0].m_StageBinary);
-  VkShaderModule fragShaderModule =
-      CreateShaderModule(vk, shader.m_Stages[1].m_StageBinary);
+  VkShaderModule vertShaderModule = shader.m_Stages[0].m_Module;
+  VkShaderModule fragShaderModule = shader.m_Stages[1].m_Module;
 
   VkPipelineShaderStageCreateInfo vertexShaderStageInfo =
       CreateShaderStageInfo(VK_SHADER_STAGE_VERTEX_BIT, vertShaderModule);
@@ -310,10 +308,8 @@ VkPipelineData CreateRasterPipeline(VkState &vk, ShaderProgram &shader,
                                     VkExtent2D resolution,
                                     PipelineAttachmentState &attachmentState) {
 
-  VkShaderModule vertShaderModule =
-      CreateShaderModule(vk, shader.m_Stages[0].m_StageBinary);
-  VkShaderModule fragShaderModule =
-      CreateShaderModule(vk, shader.m_Stages[1].m_StageBinary);
+  VkShaderModule vertShaderModule = shader.m_Stages[0].m_Module;
+  VkShaderModule fragShaderModule = shader.m_Stages[1].m_Module;
 
   VkPipelineShaderStageCreateInfo vertexShaderStageInfo =
       CreateShaderStageInfo(VK_SHADER_STAGE_VERTEX_BIT, vertShaderModule);
@@ -433,10 +429,8 @@ VkPipelineData CreateDynamicRasterPipeline(VkState &vk, ShaderProgram &shader,
                                            RasterizationState &rasterState,
                                            VkExtent2D resolution,
                                            Vector<VkFormat> colourAttachments) {
-  VkShaderModule vertShaderModule =
-      CreateShaderModule(vk, shader.m_Stages[0].m_StageBinary);
-  VkShaderModule fragShaderModule =
-      CreateShaderModule(vk, shader.m_Stages[1].m_StageBinary);
+  VkShaderModule vertShaderModule = shader.m_Stages[0].m_Module;
+  VkShaderModule fragShaderModule = shader.m_Stages[1].m_Module;
 
   VkPipelineShaderStageCreateInfo vertexShaderStageInfo =
       CreateShaderStageInfo(VK_SHADER_STAGE_VERTEX_BIT, vertShaderModule);
@@ -531,10 +525,9 @@ VkPipelineData CreateDynamicRasterPipeline(
     RasterizationState &rasterState, VkExtent2D resolution,
     Vector<VkFormat> colourAttachments,
     PipelineAttachmentState &attachmentState) {
-  VkShaderModule vertShaderModule =
-      CreateShaderModule(vk, shader.m_Stages[0].m_StageBinary);
-  VkShaderModule fragShaderModule =
-      CreateShaderModule(vk, shader.m_Stages[1].m_StageBinary);
+
+  VkShaderModule vertShaderModule = shader.m_Stages[0].m_Module;
+  VkShaderModule fragShaderModule = shader.m_Stages[1].m_Module;
 
   VkPipelineShaderStageCreateInfo vertexShaderStageInfo =
       CreateShaderStageInfo(VK_SHADER_STAGE_VERTEX_BIT, vertShaderModule);

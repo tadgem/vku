@@ -87,8 +87,33 @@ struct DescriptorSetLayoutData {
   Vector<VkDescriptorSetLayoutBinding> m_Bindings;
   Vector<DescriptorSetLayoutBindingData> m_BindingDatas;
 
-  DescriptorSetLayoutData(IAllocator &alloc)
+  explicit DescriptorSetLayoutData(IAllocator &alloc)
       : m_SetNumber(0), m_Bindings(alloc), m_BindingDatas(alloc) {}
+
+  ~DescriptorSetLayoutData() = default;
+
+  DescriptorSetLayoutData(const DescriptorSetLayoutData &other) = default;
+
+  DescriptorSetLayoutData(DescriptorSetLayoutData &&other) = default;
+
+  DescriptorSetLayoutData &
+  operator=(const DescriptorSetLayoutData &other) // copy assignment
+  {
+    // implemented as move-assignment from a temporary copy for brevity
+    // note that this prevents potential storage reuse
+    return *this = DescriptorSetLayoutData(other);
+  }
+
+  DescriptorSetLayoutData &
+  operator=(DescriptorSetLayoutData &&other) noexcept // move assignment
+  {
+    std::swap(m_SetNumber, other.m_SetNumber);
+    std::swap(m_CreateInfo, other.m_CreateInfo);
+    std::swap(m_Layout, other.m_Layout);
+    std::swap(m_Bindings, other.m_Bindings);
+    std::swap(m_BindingDatas, other.m_BindingDatas);
+    return *this;
+  }
 };
 
 class Buffer {

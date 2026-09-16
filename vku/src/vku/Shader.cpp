@@ -1,5 +1,4 @@
 #include "vku/Shader.h"
-#include "shaderc/shaderc.h"
 #include "slang.h"
 #include "vku/Log.h"
 #include "vku/Macros.h"
@@ -38,11 +37,108 @@ static slang::ISession *GetSlangSession() {
   return session;
 }
 
+static bool ReportSlangError(slang::IBlob *diagnostics) {
+  if (!diagnostics)
+    return true;
+  printf("%s\n", (const char *)diagnostics->getBufferPointer());
+  diagnostics->release();
+  return false;
+}
+
+static Optional<ShaderStage> CompileSlangEntry(VkState &vk,
+                                               slang::ISession *session,
+                                               slang::IModule *module,
+                                               const char *entryName) {
+
+  slang::IBlob *diagnostics = nullptr;
+  slang::IEntryPoint *entry = nullptr;
+
+  if (SLANG_FAILED(module->findEntryPointByName(entryName, &entry)) ||
+      !entry) {
+    VKU_LOG_ERR("Failed to find entry point {} in shader", entryName);
+    return {};
+  }
+
+  // One composite per stage: { module, singleEntryPoint }
+  slang::IComponentType *components[] = {module, entry};
+  slang::IComponentType *program = nullptr;
+  session->createCompositeComponentType(components, 2, &program, &diagnostics);
+  if (!ReportSlangError(diagnostics) || !program) {
+    VKU_LOG_ERR("Failed to create stage composite {}", entryName);
+    entry->release();
+    return {};
+  }
+
+  slang::IComponentType *linked = nullptr;
+  program->link(&linked, &diagnostics);
+  program->release();
+  if (!ReportSlangError(diagnostics) || !linked) {
+    VKU_LOG_ERR("Failed to link stage named {}", entryName);
+    entry->release();
+    return {};
+  }
+
+  slang::IBlob *code = nullptr;
+  linked->getEntryPointCode(
+      0, 0, &code, &diagnostics); // this program has exactly one entry point
+  linked->release();
+  entry->release();
+  if (!ReportSlangError(diagnostics) || !code) {
+    VKU_LOG_ERR("Failed to get entry point named {} post link", entryName);
+    return {};
+  }
+
+  Vector<uint8_t> spirv(*vk.m_CPUAllocator);
+  spirv.resize(code->getBufferSize());
+
+  std::memcpy(spirv.data(), code->getBufferPointer(), code->getBufferSize());
+  code->release();
+
+  return ShaderStage::CreateFromBinary(vk, spirv, entryName);
+}
+
+Optional<ShaderProgram>
+ShaderProgram::CreateShaderSlang(VkState &vk, const String &name,
+                                 std::initializer_list<const char *> entries) {
+
+  slang::IBlob *diagnostics = nullptr;
+
+  auto *session = GetSlangSession();
+  auto *module = session->loadModule(name.c_str());
+
+  if (!module) {
+    VKU_LOG_ERR("Failed to load shader {}", name.c_str());
+    return {};
+  }
+
+  Vector<ShaderStage> shaderStages(*vk.m_CPUAllocator);
+  shaderStages.reserve(entries.size());
+
+  for (const char *entry : entries) {
+    auto result = CompileSlangEntry(vk, session, module, entry);
+    if (result.has_value()) {
+      shaderStages.push_back(result.value());
+    } else {
+      VKU_LOG_ERR("Failed to compile slang entry {}", entry);
+    }
+  }
+
+  Vector<DescriptorSetLayoutData> datas(*vk.m_CPUAllocator);
+
+  for (const auto &stage : shaderStages) {
+    utils::Combine(*vk.m_CPUAllocator, datas, stage.m_LayoutDatas);
+  }
+
+  VkDescriptorSetLayout descriptorSetLayout = {};
+  descriptor::CreateDescriptorSetLayout(vk, datas, descriptorSetLayout);
+
+  return ShaderProgram(*vk.m_CPUAllocator, shaderStages, descriptorSetLayout);
+}
+
 // #endif
 
 ShaderStage::ShaderStage(IAllocator &alloc)
-    : m_PushConstants(alloc), m_LayoutDatas(alloc), m_StageBinary(alloc),
-      m_Name(alloc) {}
+    : m_PushConstants(alloc), m_LayoutDatas(alloc), m_Name(alloc) {}
 
 void ShaderProgram::Free(VkState &vk) {
   vkDestroyDescriptorSetLayout(vk.m_LogicalDevice, m_DescriptorSetLayout,
@@ -71,44 +167,11 @@ ShaderProgram ShaderProgram::CreateCompute(VkState &vk, ShaderStage &compute) {
   auto shader = ShaderProgram(*vk.m_CPUAllocator, stages, layout);
   return shader;
 }
-Optional<ShaderProgram>
-ShaderProgram::CreateShaderSlang(VkState &vk, const String &name,
-                                 const Span<String> &entries) {
-
-  slang::IBlob *diagnostics = nullptr;
-
-  auto *session = GetSlangSession();
-  auto *module = session->loadModule(name.c_str());
-
-  if (!module) {
-    VKU_LOG_ERR("Failed to load shader {}", name.c_str());
-    return {};
-  }
-  Vector<slang::IComponentType *> components(*vk.m_CPUAllocator);
-  // reserve space for entry points + module
-  components.reserve(entries.size() + 1);
-  components.push_back(module);
-
-  for (const auto &entry : entries) {
-    slang::IEntryPoint *ep = {};
-    module->findEntryPointByName(entry.c_str(), &ep);
-
-    if (ep) {
-      components.push_back(ep);
-    }
-  }
-
-  slang::IComponentType *linkedProgram = nullptr;
-  session->createCompositeComponentType(components.data(), components.size(),
-                                        &linkedProgram, &diagnostics);
-}
 
 ShaderProgram::ShaderProgram(IAllocator &alloc,
                              Vector<ShaderStage> shaderStages,
                              VkDescriptorSetLayout layout)
-    :
-
-      m_DescriptorSetLayout(layout), m_Stages(shaderStages),
+    : m_DescriptorSetLayout(layout), m_Stages(shaderStages),
       m_PushConstantRanges(alloc) {
   BuildPushConstantRanges();
 }
@@ -153,9 +216,11 @@ void ShaderProgram::BuildPushConstantRanges() {
     m_PushConstantRanges.push_back(range);
   }
 }
+
 uint32_t ShaderProgram::GetPushConstantRangeCount() {
   return static_cast<uint32_t>(m_PushConstantRanges.size());
 }
+
 VkPipelineLayoutCreateInfo ShaderProgram::GetPipelineLayoutCreateInfo() {
   VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
   pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
@@ -195,49 +260,6 @@ VkShaderModule CreateShaderModuleRaw(VkState &vk, const char *data,
     VKU_LOG_ERR("Failed to create shader module!");
   }
   return shaderModule;
-}
-
-shaderc_shader_kind GetShadercShaderKind(vku::ShaderStageType type) {
-  switch (type) {
-  case vku::ShaderStageType::Vertex:
-    return shaderc_shader_kind ::shaderc_glsl_vertex_shader;
-  case vku::ShaderStageType::Fragment:
-    return shaderc_shader_kind ::shaderc_glsl_fragment_shader;
-  case vku::ShaderStageType::Compute:
-    return shaderc_shader_kind ::shaderc_glsl_compute_shader;
-  default:
-    return shaderc_shader_kind ::shaderc_compute_shader;
-  }
-}
-
-StageBinary CreateStageBinaryFromSource(VkState &vk, ShaderStageType type,
-                                        const String &source,
-                                        const char *shaderName) {
-  shaderc_compiler *c = shaderc_compiler_initialize();
-  shaderc_compile_options_t opt{};
-
-  auto result = shaderc_compile_into_spv(c, source.c_str(), source.size(),
-                                         GetShadercShaderKind(type), shaderName,
-                                         "main", opt);
-
-  const char *spirv_bytes = shaderc_result_get_bytes(result);
-  size_t spirv_size = shaderc_result_get_length(result);
-  StageBinary bin(*vk.m_CPUAllocator);
-  if (shaderc_result_get_num_errors(result) != 0) {
-    VKU_LOG_ERR("Failed to compile shader : %s",
-                shaderc_result_get_error_message(result));
-    return bin;
-  }
-
-  bin.resize(spirv_size);
-  for (auto i = 0; i < spirv_size; i++) {
-    bin[i] = spirv_bytes[i];
-  }
-
-  shaderc_result_release(result);
-  shaderc_compiler_release(c);
-
-  return bin;
 }
 
 void RecurseStringInclude(VkState &vk, String inputDir, String &output,
