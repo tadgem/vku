@@ -56,11 +56,11 @@ ViewData CreateView(VkState &vk, VkuIm3dState im3dState,
   finalImage.Build(vk);
 
   Material lightPassMat = Material::Create(vk, lightPassProg);
-  lightPassMat.CreateBuffer(vk, 0, 3);
+  lightPassMat.CreateBuffer(vk, 0, 0);
 
-  lightPassMat.SetColourAttachment(vk, "positionBufferSampler", gbuffer, 1);
-  lightPassMat.SetColourAttachment(vk, "normalBufferSampler", gbuffer, 2);
-  lightPassMat.SetColourAttachment(vk, "colourBufferSampler", gbuffer, 0);
+  lightPassMat.SetColourAttachment(vk, "positionBuffer", gbuffer, 1);
+  lightPassMat.SetColourAttachment(vk, "normalBuffer", gbuffer, 2);
+  lightPassMat.SetColourAttachment(vk, "colourBuffer", gbuffer, 0);
 
   auto im3dViewState = AddIm3dForViewport(
       vk, im3dState, finalImage.m_RenderPassInfo.m_RenderPass, false, true);
@@ -69,7 +69,8 @@ ViewData CreateView(VkState &vk, VkuIm3dState im3dState,
   gbufferFormats.push_back(VK_FORMAT_R16G16B16A16_SFLOAT);
   gbufferFormats.push_back(VK_FORMAT_R16G16B16A16_SFLOAT);
   gbufferFormats.push_back(VK_FORMAT_R16G16B16A16_SFLOAT);
-  auto deferredIm3dViewState = AddIm3dForDeferredLightPass(vk, im3dState);
+  auto deferredIm3dViewState =
+      AddIm3dForDeferredLightPass(vk, im3dState, VK_FORMAT_R16G16B16A16_SFLOAT);
 
   StaticVector<VertexDataPosUv> screenQuadVerts = {
       {{-1.0f, -1.0f, 0.0f}, {0.0f, 0.0f}},
@@ -301,8 +302,7 @@ void RecordCommandBuffersV2(VkState &vk, Vector<ViewData *> views,
 
       VkRect2D scissor{};
       scissor.offset = {0, 0};
-      scissor.extent = VkExtent2D{static_cast<uint32_t>(viewExtent.width),
-                                  static_cast<uint32_t>(viewExtent.height)};
+      scissor.extent = VkExtent2D{viewExtent.width, viewExtent.height};
 
       // issue with lighting pass is that uvs are just 0,0 -> 1,1
       // meaning the entire buffer will be resampled
@@ -325,6 +325,7 @@ void RecordCommandBuffersV2(VkState &vk, Vector<ViewData *> views,
           nullptr);
       vkCmdDrawIndexed(commandBuffer, view->m_ViewQuad.m_IndexCount, 1, 0, 0,
                        0);
+      vkCmdEndRenderingKHR(commandBuffer);
       debug::EndDebugMarker(commandBuffer);
 
       {
@@ -387,7 +388,7 @@ RenderModel CreateRenderModelGbuffer(VkState &vk, const char *modelPath,
     item.m_Material = Material::Create(vk, shader);
     item.m_Material.CreateBuffer(vk, 0, 0);
     MaterialEx &material = model.m_Materials[mesh.m_MaterialIndex];
-    item.m_Material.SetSampler(vk, "texSampler", material.m_Diffuse.m_ImageView,
+    item.m_Material.SetSampler(vk, "diffuse", material.m_Diffuse.m_ImageView,
                                material.m_Diffuse.m_Sampler);
     renderModel.m_RenderItems.push_back(item);
   }
@@ -529,11 +530,11 @@ void OnIm3D() {
 
 int main() {
   bool enableMSAA = false;
-  VkState vk = init::Create<VkSDL>("Im3D Multiview", 1920, 1080, enableMSAA);
+  VkState vk = init::Create<VkSDL>("Dynamic Rendering", 1920, 1080, enableMSAA);
 
-  VKU_LOG_INFO("vkCmdBeginRenderingKHR : addr : %ull",
+  VKU_LOG_INFO("vkCmdBeginRenderingKHR : address : %ull",
                (void *)*vkCmdBeginRenderingKHR);
-  VKU_LOG_INFO("vkCmdEndRenderingKHR : addr : %ull",
+  VKU_LOG_INFO("vkCmdEndRenderingKHR : address : %ull",
                (void *)*vkCmdEndRenderingKHR);
 
   auto im3dState = LoadIm3D(vk);
@@ -541,27 +542,28 @@ int main() {
   DeferredLightData lightDataCpu{};
   FillExampleLightData(lightDataCpu);
 
-  ShaderProgram gbufferProg = ShaderProgram::CreateShaderSlang(
-                                  vk, "shaders/gbuffer", {"vertex", "frag"})
-                                  .value();
-  ShaderProgram lightPassProg =
-      ShaderProgram::CreateShaderSlang(vk, "shaders/lights", {"vertex", "frag"})
+  ShaderProgram GBufferProgram =
+      ShaderProgram::CreateShaderSlang(vk, "shaders/gbuffer", {"vert", "frag"})
+          .value();
+  ShaderProgram LightPassProgram =
+      ShaderProgram::CreateShaderSlang(vk, "shaders/lights", {"vert", "frag"})
           .value();
 
-  ViewData viewA = CreateView(vk, im3dState, gbufferProg, lightPassProg);
+  ViewData viewA = CreateView(vk, im3dState, GBufferProgram, LightPassProgram);
   viewA.m_Camera.Position = {-40.0, 10.0f, 30.0f};
-  ViewData viewB = CreateView(vk, im3dState, gbufferProg, lightPassProg);
+  ViewData viewB = CreateView(vk, im3dState, GBufferProgram, LightPassProgram);
   viewB.m_Camera.Position = {30.0, 0.0f, -20.0f};
 
   Vector<ViewData *> views(*vk.m_CPUAllocator);
   views.push_back(&viewA);
   views.push_back(&viewB);
 
-  RenderData renderData = CreateRenderData(vk, gbufferProg, lightPassProg);
+  RenderData renderData =
+      CreateRenderData(vk, GBufferProgram, LightPassProgram);
   // create vertex and index buffer
   // allocate materials instead of raw buffers etc.
   RenderModel m =
-      CreateRenderModelGbuffer(vk, "assets/Sponza/sponza.gltf", gbufferProg);
+      CreateRenderModelGbuffer(vk, "assets/Sponza/sponza.gltf", GBufferProgram);
 
   while (vk.m_Backend->ShouldRun(vk)) {
     vk.m_Backend->PreFrame(vk);
@@ -587,8 +589,8 @@ int main() {
 
     vk.m_Backend->PostFrame(vk);
   }
-  gbufferProg.Free(vk);
-  lightPassProg.Free(vk);
+  GBufferProgram.Free(vk);
+  LightPassProgram.Free(vk);
 
   FreeView(vk, viewA);
   FreeView(vk, viewB);

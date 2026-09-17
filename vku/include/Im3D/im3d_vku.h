@@ -32,7 +32,8 @@ VkuIm3dViewState AddIm3dForViewport(VkState &vk, VkuIm3dState &state,
                                     VkRenderPass renderPass, bool enableMSAA,
                                     bool enableDynamicRendering = false);
 VkuIm3dViewState AddIm3dForGBuffer(VkState &vk, VkuIm3dState &state);
-VkuIm3dViewState AddIm3dForDeferredLightPass(VkState &vk, VkuIm3dState &state);
+VkuIm3dViewState AddIm3dForDeferredLightPass(VkState &vk, VkuIm3dState &state,
+                                             VkFormat format);
 VkuIm3dViewState AddIm3dForGBufferRenderPass(VkState &vk, VkuIm3dState &state,
                                              VkRenderPass gbufferRenderPass,
                                              uint32_t colourAttachmentCount,
@@ -49,4 +50,4 @@ void DrawIm3dTextListsImGui(uint32_t width, uint32_t height,
                             glm::mat4 _viewProj);
 void DrawIm3dTextListsImGuiAsChild(glm::mat4 _viewProj);
 
-}
+} // namespace vku

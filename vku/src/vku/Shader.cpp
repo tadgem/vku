@@ -40,7 +40,9 @@ static slang::ISession *GetSlangSession() {
 static bool ReportSlangError(slang::IBlob *diagnostics) {
   if (!diagnostics)
     return true;
-  printf("%s\n", (const char *)diagnostics->getBufferPointer());
+
+  const char *msg = static_cast<const char *>(diagnostics->getBufferPointer());
+  VKU_LOG_ERR("Slang Error : %s", msg);
   diagnostics->release();
   return false;
 }
@@ -53,8 +55,7 @@ static Optional<ShaderStage> CompileSlangEntry(VkState &vk,
   slang::IBlob *diagnostics = nullptr;
   slang::IEntryPoint *entry = nullptr;
 
-  if (SLANG_FAILED(module->findEntryPointByName(entryName, &entry)) ||
-      !entry) {
+  if (SLANG_FAILED(module->findEntryPointByName(entryName, &entry)) || !entry) {
     VKU_LOG_ERR("Failed to find entry point {} in shader", entryName);
     return {};
   }
@@ -104,10 +105,11 @@ ShaderProgram::CreateShaderSlang(VkState &vk, const String &name,
   slang::IBlob *diagnostics = nullptr;
 
   auto *session = GetSlangSession();
-  auto *module = session->loadModule(name.c_str());
+  auto *module = session->loadModule(name.c_str(), &diagnostics);
 
   if (!module) {
-    VKU_LOG_ERR("Failed to load shader {}", name.c_str());
+    VKU_LOG_ERR("Failed to load shader %s", name.c_str());
+    ReportSlangError(diagnostics);
     return {};
   }
 
@@ -126,7 +128,7 @@ ShaderProgram::CreateShaderSlang(VkState &vk, const String &name,
   Vector<DescriptorSetLayoutData> datas(*vk.m_CPUAllocator);
 
   for (const auto &stage : shaderStages) {
-    utils::Combine(*vk.m_CPUAllocator, datas, stage.m_LayoutDatas);
+    datas = utils::Combine(*vk.m_CPUAllocator, datas, stage.m_LayoutDatas);
   }
 
   VkDescriptorSetLayout descriptorSetLayout = {};
@@ -247,7 +249,7 @@ VkShaderModule CreateShaderModule(VkState &vk, const StageBinary &data) {
   return shaderModule;
 }
 
-VkShaderModule CreateShaderModuleRaw(VkState &vk, const char *data,
+VkShaderModule CreateShaderModuleRaw(VkState &vk, const unsigned char *data,
                                      size_t length) {
   VkShaderModuleCreateInfo createInfo{};
   createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;

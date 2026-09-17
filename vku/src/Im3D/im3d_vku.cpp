@@ -28,10 +28,6 @@ Vector<unsigned char> ToVector(IAllocator &alloc, const unsigned char *src,
 
 VkuIm3dState LoadIm3D(VkState &vk) {
 
-  ShaderProgram im3d_tris_33 =
-      ShaderProgram::CreateShaderSlang(vk, "shaders/im3d_tris", {"v", "f"})
-          .value();
-
   Vector<unsigned char> tris_vert_bin =
       ToVector(*vk.m_CPUAllocator, &im3d_tris_vert_spv_bin[0],
                (uint32_t)im3d_tris_vert_spv_bin_SIZE);
@@ -198,7 +194,8 @@ VkuIm3dViewState AddIm3dForGBuffer(VkState &vk, VkuIm3dState &state) {
           tris_pipeline, points_pipeline, lines_pipeline};
 }
 
-VkuIm3dViewState AddIm3dForDeferredLightPass(VkState &vk, VkuIm3dState &state) {
+VkuIm3dViewState AddIm3dForDeferredLightPass(VkState &vk, VkuIm3dState &state,
+                                             VkFormat format) {
   auto vertexDescription =
       VertexDataPos4::GetVertexDescription(*vk.m_CPUAllocator);
 
@@ -207,7 +204,7 @@ VkuIm3dViewState AddIm3dForDeferredLightPass(VkState &vk, VkuIm3dState &state) {
                                        VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST};
 
   Vector<VkFormat> singleFormat(*vk.m_CPUAllocator);
-  singleFormat.push_back(vk.m_SwapChainImageFormat);
+  singleFormat.push_back(format);
 
   VkPipelineData tris_pipeline = pipelines::CreateDynamicRasterPipeline(
       vk, state.m_TriProg, vertexDescription, tris_raster_state,

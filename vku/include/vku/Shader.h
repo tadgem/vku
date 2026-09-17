@@ -6,7 +6,7 @@
 #include <initializer_list>
 namespace vku {
 VkShaderModule CreateShaderModule(VkState &vk, const StageBinary &data);
-VkShaderModule CreateShaderModuleRaw(VkState &vk, const char *data,
+VkShaderModule CreateShaderModuleRaw(VkState &vk, const unsigned char *data,
                                      size_t length);
 
 struct ShaderStage {
@@ -25,6 +25,23 @@ struct ShaderStage {
     auto stageLayoutDatas = descriptor::ReflectDescriptorSetLayouts(vk, binary);
     auto pushConstants = descriptor::ReflectPushConstants(vk, binary);
     auto module = CreateShaderModule(vk, binary);
+
+    ShaderStage stage(*vk.m_CPUAllocator);
+    stage.m_Name = name;
+    stage.m_Module = module;
+    stage.m_PushConstants = pushConstants;
+    stage.m_LayoutDatas = stageLayoutDatas;
+
+    return stage;
+  }
+
+  static ShaderStage CreateFromBinaryRaw(VkState &vk, unsigned char *binary,
+                                         size_t length, const char *name) {
+    auto stageLayoutDatas =
+        descriptor::ReflectDescriptorSetLayoutsRaw(vk, binary, length);
+    auto pushConstants =
+        descriptor::ReflectPushConstantsRaw(vk, binary, length);
+    auto module = CreateShaderModuleRaw(vk, binary, length);
 
     ShaderStage stage(*vk.m_CPUAllocator);
     stage.m_Name = name;

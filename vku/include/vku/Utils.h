@@ -17,7 +17,6 @@ template <typename _Ty>
 Vector<_Ty> Combine(IAllocator &alloc, const Vector<_Ty> &a,
                     const Vector<_Ty> &b) {
   Vector<_Ty> v(alloc);
-  v.reserve(a.size() + b.size());
 
   for (const auto &val : a) {
     v.push_back(val);

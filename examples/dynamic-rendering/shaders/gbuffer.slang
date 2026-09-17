@@ -1,29 +1,56 @@
-#version 450
+import vku;
 
-layout(location = 0) in vec3 vertexPosition;
-layout(location = 1) in vec3 vertexNormal;
-layout(location = 2) in vec2 vertexUV;
+struct PushConstants
+{
+    float4x4 view;
+    float4x4 proj;
+}
 
-layout(location = 0) out vec3 Position;
-layout(location = 1) out vec3 Normal;
-layout(location = 2) out vec2 UV;
-
-layout(push_constant, std430) uniform pc {
-    mat4 view;
-    mat4 proj;
+struct UniformBufferObject {
+    float4x4 model;
 };
 
-layout(set = 0, binding = 0) uniform UniformBufferObject {
-    mat4 model;
-} ubo;
+struct VertexInput
+{
+    [[vk::location(0)]] float3 position : POSITION;
+    [[vk::location(1)]] float3 normal : NORMAL;
+    [[vk::location(2)]] float2 uv : UV;
+};
 
-void main() {
+struct VertexOutput
+{
+    float3 position : SV_Position;
+    [[vk::location(0)]] float3 normal :NORMAL;
+    [[vk::location(1)]] float2 uv :UV;
+};
 
-    UV = vertexUV;
+[vk::push_constant]
+PushConstants pc;
 
-    mat4 normalMatrix = transpose(inverse(ubo.model));
-    Normal = normalize((normalMatrix * vec4(vertexNormal, 0)).xyz);
+[[vk::binding(0, 0)]]
+ConstantBuffer<UniformBufferObject> ubo;
 
-    Position = (ubo.model * vec4(vertexPosition, 1.0)).xyz;
-    gl_Position = proj * view * vec4(Position, 1.0);
+[shader("vertex")]
+VertexOutput vert(VertexInput input)
+{
+    VertexOutput output;
+    float4x4 normalMatrix = transpose(_inverse(ubo.model));
+    float4x4 modelViewProj = mul(mul(pc.proj, pc.view), ubo.model);
+    float4 pos = float4(input.position, 1.0);
+    output.position = mul(modelViewProj, pos).xyz;
+    output.normal = normalize(mul(normalMatrix, pos)).xyz;
+    output.uv = input.uv;
+
+    return output;
+}
+
+Sampler2D       diffuse;
+
+[shader("fragment")]
+float4 frag(VertexOutput input) : SV_Target
+{
+    float4 col = diffuse.Sample(input.uv);
+    //float4 col = float4( input.uv, 0.0, 1.0 );
+
+    return float4(pow(col.rgb, 2.2), 1.0);
 }

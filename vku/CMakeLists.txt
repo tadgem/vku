@@ -29,44 +29,6 @@ set(VKU_SRCS
         src/ImGui/imgui.cpp
         src/Im3D/im3d.cpp
         src/Im3D/im3d_vku.cpp
-        include/vku/vku.h
-        include/vku/Texture.h
-        include/vku/Framebuffer.h
-        include/vku/Mesh.h
-        include/vku/Material.h
-        include/vku/Shader.h
-        include/vku/Macros.h
-        include/vku/Log.h
-        include/vku/DescriptorSetAllocator.h
-        include/vku/Pipeline.h
-        include/vku/Structs.h
-        include/vku/Buffer.h
-        include/vku/Commands.h
-        include/vku/Utils.h
-        include/vku/Init.h
-        include/vku/Descriptor.h
-        include/vku/RenderPass.h
-        include/vku/Submission.h
-        include/vku/Defaults.h
-        include/vku/Debug.h
-        include/vku/Alias.h
-        include/vku/Allocator.h
-        include/ThirdParty/FunnelSansTTF.h
-        include/ThirdParty/spirv_reflect.h
-        include/ThirdParty/VulkanMemoryAllocator.h
-        include/ThirdParty/stb_image.h
-        include/Im3D/im3d.h
-        include/Im3D/im3d_math.h
-        include/Im3D/im3d_config.h
-        include/Im3D/im3d_vku.h
-        include/ImGui/imgui_impl_vulkan.h
-        include/ImGui/vku_extensions.h
-        include/ImGui/imconfig.h
-        include/ImGui/imgui_internal.h
-        include/ImGui/imgui.h
-        include/ImGui/imstb_rectpack.h
-        include/ImGui/imstb_textedit.h
-        include/ImGui/imstb_truetype.h
 )
 
 set(VKU_COMPILE_DEFS "/DIMGUI_IMPL_VULKAN_USE_VOLK")
@@ -79,7 +41,8 @@ add_library(${PROJECT_NAME}
         ${VKU_SRCS}
 )
 
-set(VKU_INCLUDES ${Vulkan_INCLUDE_DIRS}
+set(VKU_INCLUDES
+        ${Vulkan_INCLUDE_DIRS}
         ${GLM_INCLUDES}
         ${SHADERC_INCLUDES}
         ${SHADERC_UTIL_INCLUDES}

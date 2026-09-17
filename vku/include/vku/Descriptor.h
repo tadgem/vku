@@ -16,13 +16,14 @@ void CreateDescriptorSetLayout(VkState &vk,
 Vector<DescriptorSetLayoutData>
 ReflectDescriptorSetLayouts(VkState &vk, StageBinary &stageBin);
 Vector<DescriptorSetLayoutData>
-ReflectDescriptorSetLayoutsRaw(VkState &vk, const char *stage_bin,
+ReflectDescriptorSetLayoutsRaw(VkState &vk, const unsigned char *stage_bin,
                                size_t stage_size);
 
 Vector<PushConstantBlock> ReflectPushConstants(VkState &vk,
                                                StageBinary &stageBin);
 Vector<PushConstantBlock>
-ReflectPushConstantsRaw(VkState &vk, const char *stage_bin, size_t stage_size);
+ReflectPushConstantsRaw(VkState &vk, const unsigned char *stage_bin,
+                        size_t stage_size);
 
 VkDescriptorSet CreateDescriptorSet(VkState &vk,
                                     DescriptorSetLayoutData &layoutData);

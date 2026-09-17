@@ -10,10 +10,10 @@ target_include_directories(${PROJECT_NAME} PUBLIC ${VKU_SDL_INCLUDES} ${EXAMPLES
 
 target_link_libraries(${PROJECT_NAME} vku vku-sdl assimp)
 
-add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_directory
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders $<TARGET_FILE_DIR:${PROJECT_NAME}>/shaders)
 
-add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_directory
         ${CMAKE_CURRENT_SOURCE_DIR}/assets $<TARGET_FILE_DIR:${PROJECT_NAME}>/assets)

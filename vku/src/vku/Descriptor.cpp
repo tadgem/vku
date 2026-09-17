@@ -54,6 +54,10 @@ ShaderBindingType GetBindingType(const SpvReflectDescriptorBinding &binding) {
     return ShaderBindingType::Sampler;
   }
 
+  if (binding.descriptor_type == SPV_REFLECT_DESCRIPTOR_TYPE_SAMPLED_IMAGE) {
+    return ShaderBindingType::SampledImage;
+  }
+
   return ShaderBindingType::UniformBuffer;
 }
 
@@ -163,6 +167,7 @@ void CreateDescriptorSetLayout(VkState &vk,
   layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
   layoutInfo.bindingCount = static_cast<uint32_t>(cleanBindings.size());
   layoutInfo.pBindings = cleanBindings.data();
+  layoutInfo.bindingCount = cleanBindings.size();
 
   VK_CHECK(vkCreateDescriptorSetLayout(vk.m_LogicalDevice, &layoutInfo, nullptr,
                                        &descriptorSetLayout))
@@ -170,14 +175,12 @@ void CreateDescriptorSetLayout(VkState &vk,
 
 Vector<DescriptorSetLayoutData>
 ReflectDescriptorSetLayouts(VkState &vk, StageBinary &stageBin) {
-  return ReflectDescriptorSetLayoutsRaw(vk, (const char *)stageBin.data(),
-                                        stageBin.size());
+  return ReflectDescriptorSetLayoutsRaw(vk, stageBin.data(), stageBin.size());
 }
 
 Vector<PushConstantBlock> ReflectPushConstants(VkState &vk,
                                                StageBinary &stageBin) {
-  return ReflectPushConstantsRaw(vk, (const char *)stageBin.data(),
-                                 stageBin.size());
+  return ReflectPushConstantsRaw(vk, stageBin.data(), stageBin.size());
 }
 
 VkDescriptorSet CreateDescriptorSet(VkState &vk,
@@ -187,7 +190,7 @@ VkDescriptorSet CreateDescriptorSet(VkState &vk,
 }
 
 Vector<DescriptorSetLayoutData>
-ReflectDescriptorSetLayoutsRaw(VkState &vk, const char *stage_bin,
+ReflectDescriptorSetLayoutsRaw(VkState &vk, const unsigned char *stage_bin,
                                size_t stage_size) {
   STLAllocator<DescriptorSetLayoutData> dsld_alloc(*vk.m_CPUAllocator.get());
   SpvReflectShaderModule shaderReflectModule;
@@ -284,7 +287,8 @@ ReflectDescriptorSetLayoutsRaw(VkState &vk, const char *stage_bin,
 }
 
 Vector<PushConstantBlock>
-ReflectPushConstantsRaw(VkState &vk, const char *stage_bin, size_t stage_size) {
+ReflectPushConstantsRaw(VkState &vk, const unsigned char *stage_bin,
+                        size_t stage_size) {
   STLAllocator<PushConstantBlock> pcba(*vk.m_CPUAllocator);
   Vector<PushConstantBlock> pushConstants(pcba);
   SpvReflectShaderModule shaderReflectModule;

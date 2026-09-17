@@ -295,8 +295,8 @@ VkPipelineData CreateRasterPipeline(VkState &vk, ShaderProgram &shader,
   VK_CHECK(vkCreateGraphicsPipelines(vk.m_LogicalDevice, VK_NULL_HANDLE, 1,
                                      &pipelineCreateInfo, nullptr, &pipeline))
 
-  vkDestroyShaderModule(vk.m_LogicalDevice, vertShaderModule, nullptr);
-  vkDestroyShaderModule(vk.m_LogicalDevice, fragShaderModule, nullptr);
+  // vkDestroyShaderModule(vk.m_LogicalDevice, vertShaderModule, nullptr);
+  // vkDestroyShaderModule(vk.m_LogicalDevice, fragShaderModule, nullptr);
 
   return {pipeline, pipelineLayout};
 }
@@ -372,8 +372,8 @@ VkPipelineData CreateRasterPipeline(VkState &vk, ShaderProgram &shader,
   VK_CHECK(vkCreateGraphicsPipelines(vk.m_LogicalDevice, VK_NULL_HANDLE, 1,
                                      &pipelineCreateInfo, nullptr, &pipeline))
 
-  vkDestroyShaderModule(vk.m_LogicalDevice, vertShaderModule, nullptr);
-  vkDestroyShaderModule(vk.m_LogicalDevice, fragShaderModule, nullptr);
+  // vkDestroyShaderModule(vk.m_LogicalDevice, vertShaderModule, nullptr);
+  // vkDestroyShaderModule(vk.m_LogicalDevice, fragShaderModule, nullptr);
 
   return {pipeline, pipelineLayout};
 }
@@ -393,7 +393,7 @@ CreateComputePipeline(VkState &vk, StageBinary &comp,
   if (vkCreatePipelineLayout(vk.m_LogicalDevice, &pipelineLayoutInfo, nullptr,
                              &pipelineLayout) != VK_SUCCESS) {
     VKU_LOG_ERR("failed to create compute pipeline layout!");
-    vkDestroyShaderModule(vk.m_LogicalDevice, compStage, nullptr);
+    // vkDestroyShaderModule(vk.m_LogicalDevice, compStage, nullptr);
     return {VK_NULL_HANDLE, VK_NULL_HANDLE};
   }
 
@@ -415,12 +415,12 @@ CreateComputePipeline(VkState &vk, StageBinary &comp,
                                &pipelineInfo, nullptr,
                                &pipeline) != VK_SUCCESS) {
     VKU_LOG_ERR("failed to create compute pipeline!");
-    vkDestroyShaderModule(vk.m_LogicalDevice, compStage, nullptr);
+    // vkDestroyShaderModule(vk.m_LogicalDevice, compStage, nullptr);
     vkDestroyPipelineLayout(vk.m_LogicalDevice, pipelineLayout, nullptr);
     return {VK_NULL_HANDLE, VK_NULL_HANDLE};
   }
 
-  vkDestroyShaderModule(vk.m_LogicalDevice, compStage, nullptr);
+  // vkDestroyShaderModule(vk.m_LogicalDevice, compStage, nullptr);
   return {pipeline, pipelineLayout};
 }
 
@@ -514,8 +514,8 @@ VkPipelineData CreateDynamicRasterPipeline(VkState &vk, ShaderProgram &shader,
   VK_CHECK(vkCreateGraphicsPipelines(vk.m_LogicalDevice, VK_NULL_HANDLE, 1,
                                      &pipelineCreateInfo, nullptr, &pipeline))
 
-  vkDestroyShaderModule(vk.m_LogicalDevice, vertShaderModule, nullptr);
-  vkDestroyShaderModule(vk.m_LogicalDevice, fragShaderModule, nullptr);
+  // vkDestroyShaderModule(vk.m_LogicalDevice, vertShaderModule, nullptr);
+  // vkDestroyShaderModule(vk.m_LogicalDevice, fragShaderModule, nullptr);
 
   return {pipeline, pipelineLayout};
 }
@@ -607,8 +607,8 @@ VkPipelineData CreateDynamicRasterPipeline(
   VK_CHECK(vkCreateGraphicsPipelines(vk.m_LogicalDevice, VK_NULL_HANDLE, 1,
                                      &pipelineCreateInfo, nullptr, &pipeline))
 
-  vkDestroyShaderModule(vk.m_LogicalDevice, vertShaderModule, nullptr);
-  vkDestroyShaderModule(vk.m_LogicalDevice, fragShaderModule, nullptr);
+  // vkDestroyShaderModule(vk.m_LogicalDevice, vertShaderModule, nullptr);
+  // vkDestroyShaderModule(vk.m_LogicalDevice, fragShaderModule, nullptr);
 
   return {pipeline, pipelineLayout};
 }

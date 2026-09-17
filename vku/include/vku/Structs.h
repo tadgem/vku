@@ -26,7 +26,8 @@ enum class ShaderBindingType {
   UniformBuffer,
   ShaderStorageBuffer,
   PushConstants,
-  Sampler
+  Sampler,
+  SampledImage
 };
 
 enum class ShaderBufferMemberType {
