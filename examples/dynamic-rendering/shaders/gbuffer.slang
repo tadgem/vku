@@ -19,7 +19,7 @@ struct VertexInput
 
 struct VertexOutput
 {
-    float3 position : SV_Position;
+    float4 position : SV_Position;
     [[vk::location(0)]] float3 normal :NORMAL;
     [[vk::location(1)]] float2 uv :UV;
 };
@@ -37,7 +37,7 @@ VertexOutput vert(VertexInput input)
     float4x4 normalMatrix = transpose(_inverse(ubo.model));
     float4x4 modelViewProj = mul(mul(pc.proj, pc.view), ubo.model);
     float4 pos = float4(input.position, 1.0);
-    output.position = mul(modelViewProj, pos).xyz;
+    output.position = mul(modelViewProj, pos);
     output.normal = normalize(mul(normalMatrix, pos)).xyz;
     output.uv = input.uv;
 
@@ -46,11 +46,22 @@ VertexOutput vert(VertexInput input)
 
 Sampler2D       diffuse;
 
-[shader("fragment")]
-float4 frag(VertexOutput input) : SV_Target
+struct FragmentOutput
 {
-    float4 col = diffuse.Sample(input.uv);
-    //float4 col = float4( input.uv, 0.0, 1.0 );
+    float4 position;
+    float4 colour;
+    float2 normal;
+};
 
-    return float4(pow(col.rgb, 2.2), 1.0);
+
+[shader("fragment")]
+FragmentOutput frag(VertexOutput input) : SV_Target
+{
+    FragmentOutput output;
+    float3 normalized = normalize(input.normal);
+    output.colour = diffuse.Sample( input.uv);
+    output.normal = float2(normalized.x, normalized.y);
+    output.position = input.position;
+
+    return output;
 }

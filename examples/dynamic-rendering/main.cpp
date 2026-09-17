@@ -58,9 +58,9 @@ ViewData CreateView(VkState &vk, VkuIm3dState im3dState,
   Material lightPassMat = Material::Create(vk, lightPassProg);
   lightPassMat.CreateBuffer(vk, 0, 0);
 
-  lightPassMat.SetColourAttachment(vk, "positionBuffer", gbuffer, 1);
-  lightPassMat.SetColourAttachment(vk, "normalBuffer", gbuffer, 2);
-  lightPassMat.SetColourAttachment(vk, "colourBuffer", gbuffer, 0);
+  lightPassMat.SetColourAttachment(vk, "positionBuffer", gbuffer, 2);
+  lightPassMat.SetColourAttachment(vk, "normalBuffer", gbuffer, 0);
+  lightPassMat.SetColourAttachment(vk, "colourBuffer", gbuffer, 1);
 
   auto im3dViewState = AddIm3dForViewport(
       vk, im3dState, finalImage.m_RenderPassInfo.m_RenderPass, false, true);

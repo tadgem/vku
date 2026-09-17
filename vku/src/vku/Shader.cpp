@@ -28,6 +28,7 @@ static slang::ISession *GetSlangSession() {
   targetDesc.profile = g_Slang->findProfile("spirv_1_5");
 
   slang::SessionDesc sessionDesc = {};
+  sessionDesc.defaultMatrixLayoutMode = SLANG_MATRIX_LAYOUT_COLUMN_MAJOR;
   sessionDesc.targets = &targetDesc;
   sessionDesc.targetCount = 1;
 
@@ -186,6 +187,13 @@ void ShaderProgram::BuildPushConstantRanges() {
   // each stage has a separate push constant block
   // e.g. only ever 1 block per stage
   for (auto &stage : m_Stages) {
+    VKU_LOG_INFO("DBGPUSH stage=%s pushConstantCount=%d", stage.m_Name.c_str(),
+                 (int)stage.m_PushConstants.size());
+    for (auto &pc : stage.m_PushConstants) {
+      VKU_LOG_INFO("DBGPUSH   name=%s offset=%u size=%u stageFlags=%u",
+                   pc.m_Name.c_str(), pc.m_Offset, pc.m_Size,
+                   (uint32_t)pc.m_Stage);
+    }
     if (stage.m_PushConstants.empty()) {
       continue;
     }

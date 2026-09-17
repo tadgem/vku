@@ -174,7 +174,8 @@ float4 frag(VertexOutput input) : SV_Target
 {
     float3 textureColour = colourBuffer.Sample(input.uv).xyz;
     float3 position = positionBuffer.Sample( input.uv).xyz;
-    float3 normal = normalBuffer.Sample(input.uv).xyz;
+    float2 normalPacked = normalBuffer.Sample(input.uv).xy;
+    float3 normal = float3(normalPacked.x, normalPacked.y, 1.0 - (normalPacked.x + normalPacked.y));
 
     float3 lightColour = BlinnPhong_Directional(normal, float3(0.0f), textureColour.xyz, float3(0.0f), 0.0f);
 
