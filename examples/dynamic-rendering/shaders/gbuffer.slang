@@ -19,10 +19,28 @@ struct VertexInput
 
 struct VertexOutput
 {
-    float4 position : SV_Position;
+    float4 clipPosition : SV_Position;
     [[vk::location(0)]] float3 normal :NORMAL;
     [[vk::location(1)]] float2 uv :UV;
+    [[vk::location(2)]] float3 worldPosition :POSITION;
 };
+
+float2 SignNotZero(float2 v)
+{
+    return float2(v.x >= 0.0 ? 1.0 : -1.0, v.y >= 0.0 ? 1.0 : -1.0);
+}
+
+// Packs a unit normal into 2 components (octahedral encoding).
+float2 EncodeNormal(float3 n)
+{
+    n /= (abs(n.x) + abs(n.y) + abs(n.z));
+    float2 enc = n.xy;
+    if (n.z < 0.0)
+    {
+        enc = (1.0 - abs(n.yx)) * SignNotZero(enc);
+    }
+    return enc;
+}
 
 [vk::push_constant]
 PushConstants pc;
@@ -35,11 +53,11 @@ VertexOutput vert(VertexInput input)
 {
     VertexOutput output;
     float4x4 normalMatrix = transpose(_inverse(ubo.model));
-    float4x4 modelViewProj = mul(mul(pc.proj, pc.view), ubo.model);
-    float4 pos = float4(input.position, 1.0);
-    output.position = mul(modelViewProj, pos);
-    output.normal = normalize(mul(normalMatrix, pos)).xyz;
+    float4 worldPos = mul(ubo.model, float4(input.position, 1.0));
+    output.clipPosition = mul(mul(pc.proj, pc.view), worldPos);
+    output.normal = normalize(mul(normalMatrix, float4(input.normal, 0.0)).xyz);
     output.uv = input.uv;
+    output.worldPosition = worldPos.xyz;
 
     return output;
 }
@@ -48,9 +66,11 @@ Sampler2D       diffuse;
 
 struct FragmentOutput
 {
-    float4 position;
-    float4 colour;
+    // locations must match the attachment mapping in main.cpp:
+    // 0 -> normalBuffer, 1 -> colourBuffer, 2 -> positionBuffer
     float2 normal;
+    float4 colour;
+    float4 position;
 };
 
 
@@ -58,10 +78,9 @@ struct FragmentOutput
 FragmentOutput frag(VertexOutput input) : SV_Target
 {
     FragmentOutput output;
-    float3 normalized = normalize(input.normal);
+    output.normal = EncodeNormal(normalize(input.normal));
     output.colour = diffuse.Sample( input.uv);
-    output.normal = float2(normalized.x, normalized.y);
-    output.position = input.position;
+    output.position = float4(input.worldPosition, 1.0);
 
     return output;
 }

@@ -168,6 +168,16 @@ Sampler2D       positionBuffer;
 Sampler2D       normalBuffer;
 Sampler2D       colourBuffer;
 
+// Unpacks a normal from the 2 component octahedral encoding.
+float3 DecodeNormal(float2 enc)
+{
+    float3 n = float3(enc.x, enc.y, 1.0 - abs(enc.x) - abs(enc.y));
+    float t = saturate(-n.z);
+    n.x += n.x >= 0.0 ? -t : t;
+    n.y += n.y >= 0.0 ? -t : t;
+    return normalize(n);
+}
+
 
 [shader("fragment")]
 float4 frag(VertexOutput input) : SV_Target
@@ -175,7 +185,7 @@ float4 frag(VertexOutput input) : SV_Target
     float3 textureColour = colourBuffer.Sample(input.uv).xyz;
     float3 position = positionBuffer.Sample( input.uv).xyz;
     float2 normalPacked = normalBuffer.Sample(input.uv).xy;
-    float3 normal = float3(normalPacked.x, normalPacked.y, 1.0 - (normalPacked.x + normalPacked.y));
+    float3 normal = DecodeNormal(normalPacked);
 
     float3 lightColour = BlinnPhong_Directional(normal, float3(0.0f), textureColour.xyz, float3(0.0f), 0.0f);
 
