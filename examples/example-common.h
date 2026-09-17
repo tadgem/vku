@@ -392,7 +392,7 @@ MeshEx BuildScreenSpaceQuad(vku::VkState &vk,
   return m;
 }
 
-#define NUM_LIGHTS 512
+#define NUM_LIGHTS 256
 using DeferredLightData = FrameLightDataT<NUM_LIGHTS>;
 
 struct RenderItem {

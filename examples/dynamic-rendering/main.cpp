@@ -171,7 +171,7 @@ void UpdateViewData(VkState &vk, ViewData *view, DeferredLightData &lightData) {
     view->m_Camera.Proj[1][1] *= -1;
   }
 
-  view->m_LightPassMaterial.SetBuffer(vk.m_CurrentFrameIndex, 0, 3, lightData);
+  view->m_LightPassMaterial.SetBuffer(vk.m_CurrentFrameIndex, 0, 0, lightData);
 }
 
 void RecordCommandBuffersV2(VkState &vk, Vector<ViewData *> views,
