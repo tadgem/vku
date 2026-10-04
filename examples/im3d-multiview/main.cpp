@@ -91,7 +91,8 @@ ViewData CreateView(VkState & vk, VkuIm3dState im3dState, ShaderProgram gbufferP
     im3dDepthDesc.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
     VkRenderPass im3dRenderPass = VK_NULL_HANDLE;
-    render_passes::CreateRenderPass(vk, im3dRenderPass, im3dColourAttachments, Vector<VkAttachmentDescription>(*vk.m_CPUAllocator), true, im3dDepthDesc, VK_ATTACHMENT_LOAD_OP_LOAD);
+    Vector<VkAttachmentDescription> im3dResolveAttachments(*vk.m_CPUAllocator);
+    render_passes::CreateRenderPass(vk, im3dRenderPass, im3dColourAttachments, im3dResolveAttachments, true, im3dDepthDesc, VK_ATTACHMENT_LOAD_OP_LOAD);
 
     Vector<VkFramebuffer> im3dFramebuffers(*vk.m_CPUAllocator);
     for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
@@ -104,7 +105,8 @@ ViewData CreateView(VkState & vk, VkuIm3dState im3dState, ShaderProgram gbufferP
         im3dFramebuffers.push_back(fb);
     }
 
-    auto deferredIm3dViewState = AddIm3dForDeferredLightPass(vk, im3dState);
+    auto deferredIm3dViewState =
+        AddIm3dForDeferredLightPass(vk, im3dState, VK_FORMAT_R16G16B16A16_SFLOAT);
 
     static StaticVector<VertexDataPosUv> screenQuadVerts = {
                     { { -1.0f, -1.0f , 0.0f}, { 0.0f, 0.0f } },

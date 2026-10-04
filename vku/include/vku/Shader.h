@@ -167,12 +167,6 @@ struct ShaderProgram {
     return CreateCompute(vk, comp);
   }
 #endif
-
-#if defined(VKU_ENABLE_SLANG)
-  static Optional<ShaderProgram>
-  CreateShaderSlang(VkState &vk, const String &name,
-                    std::initializer_list<const char *> entries);
-#endif
 };
 
 } // namespace vku

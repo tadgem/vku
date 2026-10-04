@@ -542,12 +542,10 @@ int main() {
   DeferredLightData lightDataCpu{};
   FillExampleLightData(lightDataCpu);
 
-  ShaderProgram GBufferProgram =
-      ShaderProgram::CreateShaderSlang(vk, "shaders/gbuffer", {"vert", "frag"})
-          .value();
-  ShaderProgram LightPassProgram =
-      ShaderProgram::CreateShaderSlang(vk, "shaders/lights", {"vert", "frag"})
-          .value();
+  ShaderProgram GBufferProgram = ShaderProgram::CreateGraphicsFromSourcePath(
+      vk, "shaders/gbuffer.vert", "shaders/gbuffer.frag");
+  ShaderProgram LightPassProgram = ShaderProgram::CreateGraphicsFromSourcePath(
+      vk, "shaders/lights.vert", "shaders/lights.frag");
 
   ViewData viewA = CreateView(vk, im3dState, GBufferProgram, LightPassProgram);
   viewA.m_Camera.Position = {-40.0, 10.0f, 30.0f};

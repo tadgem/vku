@@ -2,7 +2,6 @@ cmake_minimum_required(VERSION 3.14)
 project(vku)
 set(CMAKE_CXX_STANDARD 23)
 option(VKU_RT_SHADER_COMPILATION "Enable Runtime Shader Compilation" TRUE)
-option(VKU_ENABLE_SLANG "Pull in the Slang shader compiler runtime" OFF)
 
 set(VKU_SRCS
         src/vku/Texture.cpp
@@ -55,10 +54,6 @@ if (VKU_RT_SHADER_COMPILATION)
     target_compile_definitions(${PROJECT_NAME} PUBLIC VKU_RT_SHADER_COMPILATION)
 endif ()
 
-if (VKU_ENABLE_SLANG)
-    target_compile_definitions(${PROJECT_NAME} PUBLIC VKU_ENABLE_SLANG)
-endif ()
-
 if (MSVC)
     # temporarily remove MP to make it easier to diagnose where unique copies are coming from
     target_compile_options(${PROJECT_NAME} PRIVATE /bigobj /Zi)
@@ -69,8 +64,4 @@ target_link_libraries(${PROJECT_NAME} PUBLIC volk)
 
 if (VKU_RT_SHADER_COMPILATION)
     target_link_libraries(${PROJECT_NAME} PUBLIC shaderc shaderc_util)
-endif ()
-
-if (VKU_ENABLE_SLANG)
-    target_link_libraries(${PROJECT_NAME} PUBLIC slang)
 endif ()

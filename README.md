@@ -8,8 +8,9 @@
 - Material system that allows generation of buffers or assigning existing buffers to descriptor slots per instanced draw / compute invocation
 - Backend API to allow multiple windowing systems (currently an SDL impl)
 - Custom allocator support (Used internally, optional in dependencies)
-- Runtime shader compilation (Optional, through shaderc submodule)
-- Slang shader compiler runtime (Optional, on by default via `VKU_ENABLE_SLANG`, through slang submodule)
+- Runtime GLSL shader compilation to SPIR-V (Optional, on by default via
+  `VKU_RT_SHADER_COMPILATION`, through the shaderc/glslang submodules). Shaders
+  are written in GLSL and can be reloaded from source at runtime.
 
 ### To get started, run the following command in the root dir of this repo:
 ```

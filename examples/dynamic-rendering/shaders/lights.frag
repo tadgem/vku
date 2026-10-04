@@ -37,11 +37,11 @@ layout(push_constant, std430) uniform pc {
     mat4 proj;
 };
 
-layout(binding = 0) uniform sampler2D positionBufferSampler;
-layout(binding = 1) uniform sampler2D normalBufferSampler;
-layout(binding = 2) uniform sampler2D colourBufferSampler;
+layout(set = 0, binding = 1) uniform sampler2D positionBuffer;
+layout(set = 0, binding = 2) uniform sampler2D normalBuffer;
+layout(set = 0, binding = 3) uniform sampler2D colourBuffer;
 
-layout(binding = 3) uniform UniformLightObject{
+layout(set = 0, binding = 0) uniform UniformLightObject {
     DirectionalLight    u_DirectionalLight;
     PointLight          u_PointLights[MAX_NUM_EACH_LIGHTS];
     SpotLight           u_SpotLights[MAX_NUM_EACH_LIGHTS];
@@ -106,7 +106,6 @@ vec3 BlinnPhong_Spot(int lightIdx, vec3 position, vec3 normal, vec3 materialAmbi
 
     float cosAngle     = dot(-s, normalize(lightUbo.u_SpotLights[lightIdx].DirectionAngle.xyz));
     float angle        = acos(cosAngle);
-    float   theta      = dot(slDir, normalize(-lightUbo.u_SpotLights[lightIdx].DirectionAngle.xyz));
 
     if (angle < lightUbo.u_SpotLights[lightIdx].DirectionAngle.w)
     {
@@ -139,21 +138,19 @@ vec3 BlinnPhong_Spot(int lightIdx, vec3 position, vec3 normal, vec3 materialAmbi
 
 void main() {
 
-    vec4 textureColour = vec4(texture(colourBufferSampler, UV).rgb, 1.0f);
-    vec3 position = texture(positionBufferSampler, UV).xyz;
-    vec3 normal = texture(normalBufferSampler, UV).xyz;
+    vec4 textureColour = vec4(texture(colourBuffer, UV).rgb, 1.0f);
+    vec3 position = texture(positionBuffer, UV).xyz;
+    vec3 normal = texture(normalBuffer, UV).xyz;
 
     vec3 lightColour = BlinnPhong_Directional(normal, vec3(0.0f), textureColour.xyz, vec3(0.0f), 0.0f);
 
     for (int i = 0; i < 16; i++)
     {
-        //lightColour
         lightColour += BlinnPhong_Point(i, position, normal, vec3(0.0f), textureColour.xyz, vec3(0.0f), 0.0f);
     }
 
     for (int i = 0; i < 16; i++)
     {
-        //lightColour
         lightColour += BlinnPhong_Spot(i, position, normal, vec3(0.0f), textureColour.xyz, vec3(0.0f), 0.0f);
     }
 
