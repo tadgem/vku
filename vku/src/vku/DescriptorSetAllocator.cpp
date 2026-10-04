@@ -91,11 +91,16 @@ VkDescriptorPool vku::DescriptorSetAllocator::GetPool(IAllocator& alloc, VkDevic
 
 VkDescriptorPool vku::DescriptorSetAllocator::CreatePool(IAllocator& alloc, VkDevice device, uint32_t setCount)
 {
-	STLAllocator<VkDescriptorPoolSize> dpsa(alloc);
-	Vector<VkDescriptorPoolSize> poolSizes(dpsa);
-	for (PoolSizeRatio ratio : m_Ratios) {
-		poolSizes.push_back(VkDescriptorPoolSize{ ratio.m_DescriptorType, uint32_t(ratio.m_Ratio * p_SetsPerPool) });
-	}
+  STLAllocator<VkDescriptorPoolSize> dpsa(alloc);
+  Vector<VkDescriptorPoolSize> poolSizes(dpsa);
+  for (PoolSizeRatio ratio : m_Ratios) {
+    uint32_t count = static_cast<uint32_t>(ratio.m_Ratio * setCount);
+    // Descriptor pools reject zero-sized entries; always reserve at least one.
+    if (count == 0) {
+      count = 1;
+    }
+    poolSizes.push_back(VkDescriptorPoolSize{ ratio.m_DescriptorType, count });
+  }
 
 	VkDescriptorPoolCreateInfo pool_info = {};
 	pool_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
