@@ -49,6 +49,10 @@ void CreateSwapChainFramebuffers(VkState &vk);
 void CreateSwapChainImageViews(VkState &vk);
 void CleanupSwapChain(VkState &vk);
 void RecreateSwapChain(VkState &vk);
+// Waits for the current frame in flight, acquires the next swapchain image and
+// records it into VkState::m_CurrentImageIndex. Returns false if the frame
+// should be skipped (minimised surface / swapchain out of date).
+bool BeginFrame(VkState &vk);
 void CreateSwapChainColourTexture(VkState &vk, bool enableMsaa = false);
 void CreateSwapChainDepthTexture(VkState &vk, bool enableMsaa = false);
 VkExtent2D ChooseSwapExtent(VkState &vk,

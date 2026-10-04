@@ -14,7 +14,7 @@ void RecordGraphicsCommandBuffers(VkState & vk, VkPipelineData& pipeline,  Model
         VkRenderPassBeginInfo renderPassInfo{};
         renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
         renderPassInfo.renderPass = vk.m_SwapchainImageRenderPass;
-        renderPassInfo.framebuffer = vk.m_SwapChainFramebuffers[frameIndex];
+        renderPassInfo.framebuffer = vk.m_SwapChainFramebuffers[vk.m_CurrentImageIndex];
         renderPassInfo.renderArea.offset = { 0,0 };
         renderPassInfo.renderArea.extent = vk.m_SwapChainImageExtent;
 

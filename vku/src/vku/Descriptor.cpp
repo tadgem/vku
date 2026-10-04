@@ -199,14 +199,14 @@ ReflectDescriptorSetLayoutsRaw(VkState &vk, const unsigned char *stage_bin,
 
   if (result != SPV_REFLECT_RESULT_SUCCESS) {
     VKU_LOG_ERR("Descriptor.cpp : Failed to reflect descriptor set layouts.");
-    return Vector(dsld_alloc);
+    return Vector<DescriptorSetLayoutData>(dsld_alloc);
   }
   uint32_t descriptorSetCount = 0;
   spvReflectEnumerateDescriptorSets(&shaderReflectModule, &descriptorSetCount,
                                     nullptr);
 
   if (descriptorSetCount == 0) {
-    return Vector(dsld_alloc);
+    return Vector<DescriptorSetLayoutData>(dsld_alloc);
   }
 
   Vector<SpvReflectDescriptorSet *> reflectedDescriptorSets(*vk.m_CPUAllocator);
@@ -298,7 +298,7 @@ ReflectPushConstantsRaw(VkState &vk, const unsigned char *stage_bin,
   if (result != SPV_REFLECT_RESULT_SUCCESS) {
     VKU_LOG_ERR("Descriptor.cpp : Failed to reflect push constants from shader "
                 "binary.");
-    return Vector(pcba);
+    return Vector<PushConstantBlock>(pcba);
   }
   uint32_t pushConstantBlockCount = 0;
   spvReflectEnumeratePushConstantBlocks(&shaderReflectModule,

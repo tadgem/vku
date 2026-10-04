@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.14)
 project(vku)
 set(CMAKE_CXX_STANDARD 23)
 option(VKU_RT_SHADER_COMPILATION "Enable Runtime Shader Compilation" TRUE)
+option(VKU_ENABLE_SLANG "Pull in the Slang shader compiler runtime" OFF)
 
 set(VKU_SRCS
         src/vku/Texture.cpp
@@ -31,12 +32,6 @@ set(VKU_SRCS
         src/Im3D/im3d_vku.cpp
 )
 
-set(VKU_COMPILE_DEFS "/DIMGUI_IMPL_VULKAN_USE_VOLK")
-
-if (VKU_ENABLE_SLANG)
-    set(VKU_COMPILE_DEFS ${VKU_COMPILE_DEFS} "/DVKU_ENABLE_SLANG")
-endif ()
-
 add_library(${PROJECT_NAME}
         ${VKU_SRCS}
 )
@@ -51,18 +46,28 @@ set(VKU_INCLUDES
 
 target_include_directories(${PROJECT_NAME} PUBLIC ${VKU_INCLUDES})
 
+target_compile_definitions(${PROJECT_NAME} PUBLIC IMGUI_IMPL_VULKAN_USE_VOLK)
+
+if (VKU_RT_SHADER_COMPILATION)
+    target_compile_definitions(${PROJECT_NAME} PUBLIC VKU_RT_SHADER_COMPILATION)
+endif ()
+
+if (VKU_ENABLE_SLANG)
+    target_compile_definitions(${PROJECT_NAME} PUBLIC VKU_ENABLE_SLANG)
+endif ()
+
 if (MSVC)
     # temporarily remove MP to make it easier to diagnose where unique copies are coming from
-    # set(${VKU_COMPILE_DEFS} ${VKU_COMPILE_DEFS} "/bigobj" "/MP" "/Zi" "/fsanitize=address")
-    set(${VKU_COMPILE_DEFS} ${VKU_COMPILE_DEFS} "/bigobj" "/Zi" "/fsanitize=address")
+    target_compile_options(${PROJECT_NAME} PRIVATE /bigobj /Zi)
     set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug,Release>:ProgramDatabase>")
 endif ()
 
-target_compile_options(${PROJECT_NAME} INTERFACE ${VKU_COMPILE_DEFS})
-target_link_options(${PROJECT_NAME} PUBLIC "/fsanitize=address")
+target_link_libraries(${PROJECT_NAME} PUBLIC volk)
 
-target_link_libraries(${PROJECT_NAME} volk)
+if (VKU_RT_SHADER_COMPILATION)
+    target_link_libraries(${PROJECT_NAME} PUBLIC shaderc shaderc_util)
+endif ()
 
 if (VKU_ENABLE_SLANG)
-    target_link_libraries(${PROJECT_NAME} slang)
+    target_link_libraries(${PROJECT_NAME} PUBLIC slang)
 endif ()

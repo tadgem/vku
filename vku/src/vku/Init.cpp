@@ -177,6 +177,8 @@ void vku::init::PopulateDebugMessengerCreateInfo(
 
 void vku::init::InitVulkan(VkState &vk, bool enableSwapchainMsaa) {
   vk.m_CurrentFrameIndex = 0;
+  vk.m_CurrentImageIndex = 0;
+  vk.m_FrameValid = false;
   vk.m_UseSwapchainMsaa = enableSwapchainMsaa;
   VK_CHECK(volkInitialize());
   CreateInstance(vk);
@@ -330,8 +332,10 @@ void vku::init::InitNanoVG(VkState &vk) {
   nvgCreateInfo.gpu = vk.m_PhysicalDevice;
   nvgCreateInfo.renderpass = vk.m_SwapchainImageRenderPass;
   nvgCreateInfo.cmdBuffer = vk.m_GraphicsCommandBuffers.data();
-  nvgCreateInfo.swapchainImageCount =
-      static_cast<uint32_t>(vk.m_SwapChainImages.size());
+  // NanoVG's Vulkan backend sizes its per-frame resources using this value and
+  // indexes them with VkState::m_CurrentFrameIndex, so it must match the number
+  // of command buffers / frames in flight rather than the swapchain image count.
+  nvgCreateInfo.swapchainImageCount = MAX_FRAMES_IN_FLIGHT;
   nvgCreateInfo.currentFrame = &vk.m_CurrentFrameIndex;
 
   nvgCreateInfo.ext.colorBlendEquation = true;
@@ -865,6 +869,8 @@ void vku::init::RecreateSwapChain(VkState &vk) {
   CreateSwapChainColourTexture(vk, vk.m_UseSwapchainMsaa);
   CreateSwapChainDepthTexture(vk, vk.m_UseSwapchainMsaa);
   CreateSwapChainFramebuffers(vk);
+  CreateSemaphores(vk);
+  CreateFences(vk);
 
   InitImGui(vk);
   InitNanoVG(vk);
@@ -949,9 +955,32 @@ void vku::init::CreateDescriptorSetAllocator(VkState &vk) {
 }
 
 void vku::init::CreateSemaphores(VkState &vk) {
+  // Destroy any existing semaphores first so this can be called again on
+  // swapchain recreation. Callers must ensure the device is idle.
+  for (auto s : vk.m_ImageAvailableSemaphores) {
+    if (s != VK_NULL_HANDLE) {
+      vkDestroySemaphore(vk.m_LogicalDevice, s, nullptr);
+    }
+  }
+  for (auto s : vk.m_RenderFinishedSemaphores) {
+    if (s != VK_NULL_HANDLE) {
+      vkDestroySemaphore(vk.m_LogicalDevice, s, nullptr);
+    }
+  }
+  for (auto s : vk.m_ComputeFinishedSemaphores) {
+    if (s != VK_NULL_HANDLE) {
+      vkDestroySemaphore(vk.m_LogicalDevice, s, nullptr);
+    }
+  }
+  vk.m_ImageAvailableSemaphores.clear();
+  vk.m_RenderFinishedSemaphores.clear();
+  vk.m_ComputeFinishedSemaphores.clear();
+
+  // One image-available semaphore per frame in flight (waited by the submit),
+  // and one render-finished semaphore per swapchain image (waited by present).
   vk.m_ImageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
-  vk.m_RenderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
   vk.m_ComputeFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
+  vk.m_RenderFinishedSemaphores.resize(vk.m_SwapChainImages.size());
 
   VkSemaphoreCreateInfo createInfo{};
   createInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
@@ -960,18 +989,36 @@ void vku::init::CreateSemaphores(VkState &vk) {
     if (vkCreateSemaphore(vk.m_LogicalDevice, &createInfo, nullptr,
                           &vk.m_ImageAvailableSemaphores[i]) != VK_SUCCESS ||
         vkCreateSemaphore(vk.m_LogicalDevice, &createInfo, nullptr,
-                          &vk.m_RenderFinishedSemaphores[i]) != VK_SUCCESS ||
-        vkCreateSemaphore(vk.m_LogicalDevice, &createInfo, nullptr,
                           &vk.m_ComputeFinishedSemaphores[i]) != VK_SUCCESS) {
       VKU_LOG_ERR("Failed to create semaphores!");
+    }
+  }
+
+  for (size_t i = 0; i < vk.m_SwapChainImages.size(); i++) {
+    if (vkCreateSemaphore(vk.m_LogicalDevice, &createInfo, nullptr,
+                          &vk.m_RenderFinishedSemaphores[i]) != VK_SUCCESS) {
+      VKU_LOG_ERR("Failed to create render finished semaphores!");
     }
   }
 }
 
 void vku::init::CreateFences(VkState &vk) {
+  for (auto f : vk.m_FrameInFlightFences) {
+    if (f != VK_NULL_HANDLE) {
+      vkDestroyFence(vk.m_LogicalDevice, f, nullptr);
+    }
+  }
+  for (auto f : vk.m_ComputeInFlightFences) {
+    if (f != VK_NULL_HANDLE) {
+      vkDestroyFence(vk.m_LogicalDevice, f, nullptr);
+    }
+  }
+  vk.m_FrameInFlightFences.clear();
+  vk.m_ComputeInFlightFences.clear();
+
   vk.m_FrameInFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
+  vk.m_ComputeInFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
   vk.m_ImagesInFlightFences.resize(vk.m_SwapChainImages.size(), VK_NULL_HANDLE);
-  vk.m_ComputeInFlightFences.resize(vk.m_SwapChainImages.size());
 
   VkFenceCreateInfo createInfo{};
   createInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
@@ -985,6 +1032,38 @@ void vku::init::CreateFences(VkState &vk) {
       VKU_LOG_ERR("Failed to create Fences!");
     }
   }
+}
+
+bool vku::init::BeginFrame(VkState &vk) {
+  vk.m_FrameValid = false;
+
+  if (vk.m_SwapChainImageExtent.width == 0 ||
+      vk.m_SwapChainImageExtent.height == 0) {
+    return false;
+  }
+
+  vkWaitForFences(vk.m_LogicalDevice, 1,
+                  &vk.m_FrameInFlightFences[vk.m_CurrentFrameIndex], VK_TRUE,
+                  UINT64_MAX);
+
+  uint32_t imageIndex = 0;
+  VkResult result = vkAcquireNextImageKHR(
+      vk.m_LogicalDevice, vk.m_SwapChain, UINT64_MAX,
+      vk.m_ImageAvailableSemaphores[vk.m_CurrentFrameIndex], VK_NULL_HANDLE,
+      &imageIndex);
+
+  if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+    RecreateSwapChain(vk);
+    return false;
+  }
+  if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
+    VKU_LOG_ERR("VulkanAPI : Failed to acquire swap chain image!");
+    return false;
+  }
+
+  vk.m_CurrentImageIndex = imageIndex;
+  vk.m_FrameValid = true;
+  return true;
 }
 
 void vku::init::CreateCommandBuffers(VkState &vk) {

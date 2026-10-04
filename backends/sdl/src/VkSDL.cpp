@@ -101,6 +101,10 @@ void vku::VkSDL::PreFrame(VkState& vk)
     ImGui_ImplVulkan_NewFrame();
     ImGui_ImplSDL3_NewFrame();
     ImGui::NewFrame();
+
+    // Wait for the frame in flight and acquire the next swapchain image so that
+    // command recording targets the correct framebuffer (m_CurrentImageIndex).
+    init::BeginFrame(vk);
 }
 
 void vku::VkSDL::PostFrame(VkState& vk)
@@ -109,14 +113,6 @@ void vku::VkSDL::PostFrame(VkState& vk)
     ImGui::UpdatePlatformWindows();
     ImGui::RenderPlatformWindowsDefault();
     submission::SubmitFrame(vk);
-
-    if (vkDeviceWaitIdle(vk.m_LogicalDevice) != VK_SUCCESS)
-    {
-        VKU_LOG_ERR("Failed to wait for device idle");
-        std::cerr << "Failed to wait for device idle" << std::endl;
-    }
-
-    init::ClearCommandBuffers(vk);
 }
 
 void vku::VkSDL::InitImGuiBackend(VkState& vk)

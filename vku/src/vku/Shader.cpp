@@ -1,5 +1,4 @@
 #include "vku/Shader.h"
-#include "slang.h"
 #include "vku/Log.h"
 #include "vku/Macros.h"
 #include "volk.h"
@@ -8,9 +7,81 @@
 #include VKU_STRING_STREAM_ALIAS
 #include VKU_REGEX_ALIAS
 
+#if defined(VKU_ENABLE_SLANG)
+#include "slang.h"
+#endif
+
+#if defined(VKU_RT_SHADER_COMPILATION)
+#include "shaderc/shaderc.h"
+#endif
+
+#include <cstring>
+#include <string>
+
 namespace vku {
 
-// #ifdef VKU_RT_SHADER_COMPILATION
+#if defined(VKU_RT_SHADER_COMPILATION)
+static shaderc_shader_kind GetShadercShaderKind(ShaderStageType type) {
+  switch (type) {
+  case ShaderStageType::Vertex:
+    return shaderc_glsl_vertex_shader;
+  case ShaderStageType::Fragment:
+    return shaderc_glsl_fragment_shader;
+  case ShaderStageType::Compute:
+    return shaderc_glsl_compute_shader;
+  default:
+    return shaderc_glsl_vertex_shader;
+  }
+}
+
+StageBinary CreateStageBinaryFromSource(VkState &vk, ShaderStageType type,
+                                        const String &source,
+                                        const char *shaderName) {
+  StageBinary bin(*vk.m_CPUAllocator);
+
+  shaderc_compiler_t compiler = shaderc_compiler_initialize();
+  if (compiler == nullptr) {
+    VKU_LOG_ERR("Failed to initialize shaderc compiler");
+    return bin;
+  }
+
+  shaderc_compile_options_t options = shaderc_compile_options_initialize();
+  shaderc_compile_options_set_target_env(options, shaderc_target_env_vulkan,
+                                         shaderc_env_version_vulkan_1_2);
+  shaderc_compile_options_set_optimization_level(
+      options, shaderc_optimization_level_performance);
+
+  shaderc_compilation_result_t result = shaderc_compile_into_spv(
+      compiler, source.c_str(), source.size(), GetShadercShaderKind(type),
+      shaderName, "main", options);
+
+  if (shaderc_result_get_compilation_status(result) !=
+      shaderc_compilation_status_success) {
+    VKU_LOG_ERR("Failed to compile shader '%s' : %s", shaderName,
+                shaderc_result_get_error_message(result));
+    shaderc_result_release(result);
+    shaderc_compile_options_release(options);
+    shaderc_compiler_release(compiler);
+    return bin;
+  }
+
+  const char *bytes = shaderc_result_get_bytes(result);
+  const size_t length = shaderc_result_get_length(result);
+
+  bin.resize(length);
+  if (length > 0) {
+    std::memcpy(bin.data(), bytes, length);
+  }
+
+  shaderc_result_release(result);
+  shaderc_compile_options_release(options);
+  shaderc_compiler_release(compiler);
+
+  return bin;
+}
+#endif
+
+#if defined(VKU_ENABLE_SLANG)
 static slang::IGlobalSession *g_Slang = nullptr;
 
 static void InitializeSlang() {
@@ -137,11 +208,11 @@ ShaderProgram::CreateShaderSlang(VkState &vk, const String &name,
 
   return ShaderProgram(*vk.m_CPUAllocator, shaderStages, descriptorSetLayout);
 }
-
-// #endif
+#endif // VKU_ENABLE_SLANG
 
 ShaderStage::ShaderStage(IAllocator &alloc)
-    : m_PushConstants(alloc), m_LayoutDatas(alloc), m_Name(alloc) {}
+    : m_Name(alloc), m_StageBinary(alloc), m_PushConstants(alloc),
+      m_LayoutDatas(alloc) {}
 
 void ShaderProgram::Free(VkState &vk) {
   vkDestroyDescriptorSetLayout(vk.m_LogicalDevice, m_DescriptorSetLayout,
@@ -174,7 +245,7 @@ ShaderProgram ShaderProgram::CreateCompute(VkState &vk, ShaderStage &compute) {
 ShaderProgram::ShaderProgram(IAllocator &alloc,
                              Vector<ShaderStage> shaderStages,
                              VkDescriptorSetLayout layout)
-    : m_DescriptorSetLayout(layout), m_Stages(shaderStages),
+    : m_Stages(shaderStages), m_DescriptorSetLayout(layout),
       m_PushConstantRanges(alloc) {
   BuildPushConstantRanges();
 }
@@ -272,45 +343,45 @@ VkShaderModule CreateShaderModuleRaw(VkState &vk, const unsigned char *data,
   return shaderModule;
 }
 
-void RecurseStringInclude(VkState &vk, String inputDir, String &output,
-                          const String &path) {
-  String input(*vk.m_CPUAllocator);
-  String dir(*vk.m_CPUAllocator);
-  String finalDir = inputDir + "/" + path;
-  input = vk.m_Backend->LoadStringFromPath(vk, finalDir.c_str());
-  dir = std::filesystem::path(path).parent_path().string();
-  IStringStream iss(input);
-  std::regex include_dir_regex("\\\"(.*)\\\"");
-  for (std::string line; std::getline(iss, line);) {
-    if (line.find("#include") != String::npos) {
-      auto words_begin =
-          std::sregex_iterator(line.begin(), line.end(), include_dir_regex);
-      auto words_end = std::sregex_iterator();
-      for (std::sregex_iterator i = words_begin; i != words_end; ++i) {
-        const std::smatch &match = *i;
-        // remove first and last ""
-        String include_dir(*vk.m_CPUAllocator);
-        include_dir = match.str().substr(1, match.str().size() - 2);
-        RecurseStringInclude(vk, inputDir, output, include_dir);
-      }
+// Recursively resolves #include "..." directives relative to the including
+// file's directory, producing a single self contained GLSL source string.
+static void ResolveShaderIncludes(VkState &vk, const std::string &filePath,
+                                  String &output, int depth) {
+  if (depth > 32) {
+    VKU_LOG_ERR("Shader include depth exceeded while resolving '%s'",
+                filePath.c_str());
+    return;
+  }
 
-      RecurseStringInclude(vk, dir, output, input);
-    } else {
-      output += line + "\n";
+  String loaded = vk.m_Backend->LoadStringFromPath(vk, filePath.c_str());
+  std::string source(loaded.c_str());
+
+  const std::string dir =
+      VKU_FILESYSTEM_NS::filesystem::path(filePath).parent_path().string();
+
+  IStringStream iss(loaded.c_str());
+  for (std::string line; std::getline(iss, line);) {
+    const size_t includePos = line.find("#include");
+    if (includePos != std::string::npos) {
+      const size_t firstQuote = line.find('"');
+      const size_t lastQuote = line.rfind('"');
+      if (firstQuote != std::string::npos && lastQuote != std::string::npos &&
+          lastQuote > firstQuote) {
+        const std::string includeName =
+            line.substr(firstQuote + 1, lastQuote - firstQuote - 1);
+        const std::string includePath =
+            dir.empty() ? includeName : dir + "/" + includeName;
+        ResolveShaderIncludes(vk, includePath, output, depth + 1);
+        continue;
+      }
     }
+    output += line + "\n";
   }
 }
 
 String ShaderStage::LoadShaderSource(VkState &vk, const char *path) {
-  String final_shader_src(*vk.m_CPUAllocator);
-  String parent_path(*vk.m_CPUAllocator);
-  String filename(*vk.m_CPUAllocator);
-  std::filesystem::path inputPath(path);
-  parent_path = inputPath.parent_path().string();
-  filename = inputPath.filename().string();
-
-  RecurseStringInclude(vk, parent_path, final_shader_src, filename);
-  // do includes
-  return final_shader_src;
+  String output(*vk.m_CPUAllocator);
+  ResolveShaderIncludes(vk, std::string(path), output, 0);
+  return output;
 }
 } // namespace vku

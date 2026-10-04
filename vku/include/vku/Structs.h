@@ -385,7 +385,9 @@ struct VkState {
   bool m_UseValidation = true;
   const bool m_UseImGui = true;
   uint64_t m_LastFrameTime;
-  uint32_t m_CurrentFrameIndex;
+  uint32_t m_CurrentFrameIndex = 0;
+  uint32_t m_CurrentImageIndex = 0;
+  bool m_FrameValid = false;
   VkExtent2D m_MaxFramebufferExtent;
   String m_AppName;
 

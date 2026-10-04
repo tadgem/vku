@@ -42,28 +42,32 @@ void EndSingleTimeCommands(VkState &vk, VkCommandBuffer &commandBuffer) {
 void RecordGraphicsCommands(
     VkState &vk,
     std::function<void(VkCommandBuffer &, uint32_t)> graphicsCommandsCallback) {
-    for (uint32_t i = 0; i < vk.m_GraphicsCommandBuffers.size(); i++) {
-      VkCommandBufferBeginInfo commandBufferBeginInfo{};
-      commandBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-      commandBufferBeginInfo.flags = 0;
-      commandBufferBeginInfo.pInheritanceInfo = nullptr;
-
-      VK_CHECK(
-          vkBeginCommandBuffer(vk.m_GraphicsCommandBuffers[i], &commandBufferBeginInfo))
-
-      uint32_t prevFrameIndex = vk.m_CurrentFrameIndex;
-      vk.m_CurrentFrameIndex = i;
-
-      nvgBeginFrame(vk.m_NanoVG, 1920, 1080, 1.0);
-
-      // Callback (nvgEndFrame is called inside, which uses m_CurrentFrameIndex)
-      graphicsCommandsCallback(vk.m_GraphicsCommandBuffers[i], i);
-
-      vk.m_CurrentFrameIndex = prevFrameIndex;
-
-
-      VK_CHECK(vkEndCommandBuffer(vk.m_GraphicsCommandBuffers[i]));
+  // Only the current frame in flight is recorded. The swapchain image to render
+  // into is acquired in init::BeginFrame and exposed as m_CurrentImageIndex, so
+  // rendering uses the correct framebuffer regardless of swapchain image count.
+  if (!vk.m_FrameValid) {
+    return;
   }
+
+  const uint32_t frameIndex = vk.m_CurrentFrameIndex;
+  VkCommandBuffer &commandBuffer = vk.m_GraphicsCommandBuffers[frameIndex];
+
+  VkCommandBufferBeginInfo commandBufferBeginInfo{};
+  commandBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+  commandBufferBeginInfo.flags = 0;
+  commandBufferBeginInfo.pInheritanceInfo = nullptr;
+
+  VK_CHECK(vkBeginCommandBuffer(commandBuffer, &commandBufferBeginInfo))
+
+  nvgBeginFrame(vk.m_NanoVG,
+                static_cast<float>(vk.m_SwapChainImageExtent.width),
+                static_cast<float>(vk.m_SwapChainImageExtent.height), 1.0);
+
+  // Callback. nvgEndFrame is expected to be called inside the callback, which
+  // uses m_CurrentFrameIndex to select its per-frame command buffer.
+  graphicsCommandsCallback(commandBuffer, frameIndex);
+
+  VK_CHECK(vkEndCommandBuffer(commandBuffer));
 }
 
 void RecordComputeCommands(

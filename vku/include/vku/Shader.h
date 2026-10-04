@@ -9,9 +9,18 @@ VkShaderModule CreateShaderModule(VkState &vk, const StageBinary &data);
 VkShaderModule CreateShaderModuleRaw(VkState &vk, const unsigned char *data,
                                      size_t length);
 
+#if defined(VKU_RT_SHADER_COMPILATION)
+// Compile GLSL source to SPIR-V at runtime using shaderc.
+StageBinary CreateStageBinaryFromSource(VkState &vk, ShaderStageType type,
+                                        const String &source,
+                                        const char *shaderName);
+#endif
+
 struct ShaderStage {
   String m_Name;
+  StageBinary m_StageBinary;
   VkShaderModule m_Module;
+  ShaderStageType m_Type = ShaderStageType::Vertex;
   Vector<PushConstantBlock> m_PushConstants;
   Vector<DescriptorSetLayoutData> m_LayoutDatas;
 
@@ -21,14 +30,18 @@ struct ShaderStage {
 
   static ShaderStage CreateFromBinary(VkState &vk,
                                       Vector<unsigned char> &binary,
-                                      const char *name) {
+                                      const char *name,
+                                      ShaderStageType type =
+                                          ShaderStageType::Vertex) {
     auto stageLayoutDatas = descriptor::ReflectDescriptorSetLayouts(vk, binary);
     auto pushConstants = descriptor::ReflectPushConstants(vk, binary);
     auto module = CreateShaderModule(vk, binary);
 
     ShaderStage stage(*vk.m_CPUAllocator);
     stage.m_Name = name;
+    stage.m_StageBinary = binary;
     stage.m_Module = module;
+    stage.m_Type = type;
     stage.m_PushConstants = pushConstants;
     stage.m_LayoutDatas = stageLayoutDatas;
 
@@ -36,7 +49,9 @@ struct ShaderStage {
   }
 
   static ShaderStage CreateFromBinaryRaw(VkState &vk, unsigned char *binary,
-                                         size_t length, const char *name) {
+                                         size_t length, const char *name,
+                                         ShaderStageType type =
+                                             ShaderStageType::Vertex) {
     auto stageLayoutDatas =
         descriptor::ReflectDescriptorSetLayoutsRaw(vk, binary, length);
     auto pushConstants =
@@ -46,6 +61,7 @@ struct ShaderStage {
     ShaderStage stage(*vk.m_CPUAllocator);
     stage.m_Name = name;
     stage.m_Module = module;
+    stage.m_Type = type;
     stage.m_PushConstants = pushConstants;
     stage.m_LayoutDatas = stageLayoutDatas;
 
@@ -54,17 +70,33 @@ struct ShaderStage {
 
   static ShaderStage CreateFromBinaryPath(VkState &vk, const char *stagePath,
                                           const ShaderStageType &stageType) {
-    String name(
-        VKU_FILESYSTEM_NS::filesystem::path(stagePath).filename().string(),
-        *vk.m_CPUAllocator);
-
     auto stageBin = vk.m_Backend->LoadBinaryFromPath(vk, stagePath);
-    return CreateFromBinary(vk, stageBin,
-                            VKU_FILESYSTEM_NS::filesystem::path(stagePath)
-                                .filename()
-                                .string()
-                                .c_str());
+    return CreateFromBinary(
+        vk, stageBin,
+        VKU_FILESYSTEM_NS::filesystem::path(stagePath).filename().string().c_str(),
+        stageType);
   }
+
+#if defined(VKU_RT_SHADER_COMPILATION)
+  static ShaderStage CreateFromSource(VkState &vk, const String &source,
+                                      const ShaderStageType &type,
+                                      const char *name, const char *path = "") {
+    auto bin = CreateStageBinaryFromSource(vk, type, source, path);
+    if (bin.empty()) {
+      return ShaderStage(*vk.m_CPUAllocator);
+    }
+    return CreateFromBinary(vk, bin, name, type);
+  }
+
+  static ShaderStage CreateFromSourcePath(VkState &vk, const char *path,
+                                          const ShaderStageType &type) {
+    auto source = LoadShaderSource(vk, path);
+    return CreateFromSource(
+        vk, source, type,
+        VKU_FILESYSTEM_NS::filesystem::path(path).filename().string().c_str(),
+        path);
+  }
+#endif
 };
 
 struct ShaderProgram {
@@ -104,6 +136,18 @@ struct ShaderProgram {
     return CreateGraphics(vk, vert, frag);
   }
 
+#if defined(VKU_RT_SHADER_COMPILATION)
+  static ShaderProgram CreateGraphicsFromSourcePath(VkState &vk,
+                                                    const char *vertPath,
+                                                    const char *fragPath) {
+    ShaderStage vert = ShaderStage::CreateFromSourcePath(
+        vk, vertPath, ShaderStageType::Vertex);
+    ShaderStage frag = ShaderStage::CreateFromSourcePath(
+        vk, fragPath, ShaderStageType::Fragment);
+    return CreateGraphics(vk, vert, frag);
+  }
+#endif
+
   static ShaderProgram CreateCompute(VkState &vk, ShaderStage &compute);
 
   static ShaderProgram CreateComputeFromBinaryPath(VkState &vk,
@@ -112,9 +156,21 @@ struct ShaderProgram {
         vk, comp_path, ShaderStageType::Compute);
     return CreateCompute(vk, comp);
   }
+
+#if defined(VKU_RT_SHADER_COMPILATION)
+  static ShaderProgram CreateComputeFromSourcePath(VkState &vk,
+                                                   const char *compPath) {
+    ShaderStage comp = ShaderStage::CreateFromSourcePath(
+        vk, compPath, ShaderStageType::Compute);
+    return CreateCompute(vk, comp);
+  }
+#endif
+
+#if defined(VKU_ENABLE_SLANG)
   static Optional<ShaderProgram>
   CreateShaderSlang(VkState &vk, const String &name,
                     std::initializer_list<const char *> entries);
+#endif
 };
 
 } // namespace vku
