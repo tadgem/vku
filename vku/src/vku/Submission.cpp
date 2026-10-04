@@ -75,6 +75,7 @@ void vku::submission::SubmitFrame(VkState &vk) {
     VKU_LOG_ERR("VulkanAPI : Failed to submit draw command buffer!");
   }
 
+
   if (vk.m_UseImGui) {
     RenderImGui(vk, imageIndex);
   }

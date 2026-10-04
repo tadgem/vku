@@ -54,6 +54,7 @@ public:
   HashMap<String, SamplerBindingData> m_Samplers;
 
   Material(IAllocator &alloc);
+  Material() = default;
 
   static Material Create(VkState &vk, ShaderProgram &shader);
 

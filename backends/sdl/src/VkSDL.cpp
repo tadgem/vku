@@ -96,6 +96,10 @@ void vku::VkSDL::PreFrame(VkState& vk)
     while (SDL_PollEvent(&sdl_event))
     {
         HandleSDLEvent(vk, sdl_event);
+        if (m_OnEvent)
+        {
+            m_OnEvent(sdl_event);
+        }
         ImGui_ImplSDL3_ProcessEvent(&sdl_event);
     }
     ImGui_ImplVulkan_NewFrame();

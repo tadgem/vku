@@ -1,6 +1,7 @@
 #pragma once
 #include "SDL3/SDL.h"
 #include "vku/Structs.h"
+#include <functional>
 #undef main // why is this a thing SDL?!
 namespace vku {
 	class VulkanAPIWindowHandle_SDL : public VulkanAPIWindowHandle
@@ -39,5 +40,9 @@ namespace vku {
           virtual String        LoadStringFromPath(VkState& vk, const char* path) override;
 
           VulkanAPIWindowHandle_SDL* m_SdlHandle;
+
+          // Optional per-event hook so consumers can observe SDL events (for
+          // input handling) without stealing them from the backend/ImGui.
+          std::function<void(SDL_Event&)> m_OnEvent;
 	};
 }

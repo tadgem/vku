@@ -50,10 +50,21 @@ StageBinary CreateStageBinaryFromSource(VkState &vk, ShaderStageType type,
                                          shaderc_env_version_vulkan_1_2);
   shaderc_compile_options_set_optimization_level(
       options, shaderc_optimization_level_performance);
+  // Preserve OpName debug info so spirv-reflect can recover descriptor /
+  // member names (required by vku's name-based Material binding lookup).
+  shaderc_compile_options_set_generate_debug_info(options);
 
   shaderc_compilation_result_t result = shaderc_compile_into_spv(
       compiler, source.c_str(), source.size(), GetShadercShaderKind(type),
       shaderName, "main", options);
+
+  if (result == nullptr) {
+    VKU_LOG_ERR("Failed to compile shader '%s' : shaderc returned null",
+                shaderName);
+    shaderc_compile_options_release(options);
+    shaderc_compiler_release(compiler);
+    return bin;
+  }
 
   if (shaderc_result_get_compilation_status(result) !=
       shaderc_compilation_status_success) {
@@ -65,13 +76,22 @@ StageBinary CreateStageBinaryFromSource(VkState &vk, ShaderStageType type,
     return bin;
   }
 
+  VKU_LOG_INFO("shaderc: compilation successful for '%s'", shaderName);
+
   const char *bytes = shaderc_result_get_bytes(result);
   const size_t length = shaderc_result_get_length(result);
 
-  bin.resize(length);
-  if (length > 0) {
-    std::memcpy(bin.data(), bytes, length);
+  if (bytes == nullptr || length == 0) {
+    VKU_LOG_ERR("Failed to compile shader '%s' : no SPIR-V produced",
+                shaderName);
+    shaderc_result_release(result);
+    shaderc_compile_options_release(options);
+    shaderc_compiler_release(compiler);
+    return bin;
   }
+
+  bin.resize(length);
+  std::memcpy(bin.data(), bytes, length);
 
   shaderc_result_release(result);
   shaderc_compile_options_release(options);

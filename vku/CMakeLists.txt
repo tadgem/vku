@@ -42,6 +42,9 @@ set(VKU_INCLUDES
         ${SHADERC_INCLUDES}
         ${SHADERC_UTIL_INCLUDES}
         ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/ImGui
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/Im3D
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/ThirdParty
         CACHE INTERNAL "")
 
 target_include_directories(${PROJECT_NAME} PUBLIC ${VKU_INCLUDES})

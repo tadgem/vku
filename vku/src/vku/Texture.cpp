@@ -643,11 +643,8 @@ void vku::textures::GenerateMips(VkState &vk, VkImage image, VkFormat format,
   vkGetPhysicalDeviceFormatProperties(vk.m_PhysicalDevice, format,
                                       &formatProperties);
 
-  auto supportsLinearSampling =
-      formatProperties.optimalTilingFeatures &
-      VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT;
-
-  if (supportsLinearSampling <= 0) {
+  if ((formatProperties.optimalTilingFeatures &
+       VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT) == 0) {
     VKU_LOG_ERR("GenerateMips : No support for linear blitting!");
     return;
   }
@@ -667,12 +664,14 @@ void vku::textures::GenerateMips(VkState &vk, VkImage image, VkFormat format,
   int32_t mipWidth = imageWidth;
   int32_t mipHeight = imageHeight;
 
+  // All mip levels are in TRANSFER_DST_OPTIMAL on entry (the caller transitions
+  // them before uploading). Blit each level into the next, restoring the source
+  // level back to TRANSFER_DST_OPTIMAL so the caller can transition the whole
+  // chain to SHADER_READ_ONLY afterwards.
   for (uint32_t i = 1; i < numMips; i++) {
     barrier.subresourceRange.baseMipLevel = i - 1;
-    barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
     barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-    barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
     barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
 
@@ -700,13 +699,13 @@ void vku::textures::GenerateMips(VkState &vk, VkImage image, VkFormat format,
                    filterMethod);
 
     barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-    barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
     barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
-    barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+    barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
 
     vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TRANSFER_BIT,
-                         VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr,
-                         0, nullptr, 1, &barrier);
+                         VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0,
+                         nullptr, 1, &barrier);
 
     if (mipWidth > 1)
       mipWidth /= 2;

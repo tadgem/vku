@@ -70,13 +70,15 @@ class Texture {
 public:
   static Texture *g_DefaultTexture;
 
-  VkImage m_Image;
-  VkImageView m_ImageView;
-  VkDeviceMemory m_Memory;
-  VkSampler m_Sampler;
-  VkFormat m_Format;
-  VkSampleCountFlagBits m_SampleCount;
-  VkDescriptorSet m_ImGuiHandle;
+  VkImage m_Image = VK_NULL_HANDLE;
+  VkImageView m_ImageView = VK_NULL_HANDLE;
+  VkDeviceMemory m_Memory = VK_NULL_HANDLE;
+  VkSampler m_Sampler = VK_NULL_HANDLE;
+  VkFormat m_Format = VK_FORMAT_UNDEFINED;
+  VkSampleCountFlagBits m_SampleCount = VK_SAMPLE_COUNT_1_BIT;
+  VkDescriptorSet m_ImGuiHandle = VK_NULL_HANDLE;
+
+  Texture() = default;
 
   Texture(VkImage image, VkImageView imageView, VkDeviceMemory memory,
           VkSampler sampler, VkFormat format, VkSampleCountFlagBits sampleCount,

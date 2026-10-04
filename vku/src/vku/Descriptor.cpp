@@ -206,17 +206,18 @@ ReflectDescriptorSetLayoutsRaw(VkState &vk, const unsigned char *stage_bin,
                                     nullptr);
 
   if (descriptorSetCount == 0) {
+    spvReflectDestroyShaderModule(&shaderReflectModule);
     return Vector<DescriptorSetLayoutData>(dsld_alloc);
   }
 
   Vector<SpvReflectDescriptorSet *> reflectedDescriptorSets(*vk.m_CPUAllocator);
   reflectedDescriptorSets.resize(descriptorSetCount);
   spvReflectEnumerateDescriptorSets(&shaderReflectModule, &descriptorSetCount,
-                                    &reflectedDescriptorSets[0]);
+                                    reflectedDescriptorSets.data());
 
   Vector<DescriptorSetLayoutData> layoutDatas(*vk.m_CPUAllocator);
 
-  for (int idx = 0; idx < reflectedDescriptorSets.size(); idx++) {
+  for (size_t idx = 0; idx < reflectedDescriptorSets.size(); idx++) {
     const SpvReflectDescriptorSet &reflectedSet = *reflectedDescriptorSets[idx];
     DescriptorSetLayoutData layoutData =
         DescriptorSetLayoutData(*vk.m_CPUAllocator);
@@ -240,7 +241,8 @@ ReflectDescriptorSetLayoutsRaw(VkState &vk, const unsigned char *stage_bin,
       ShaderBindingType bufferType = GetBindingType(reflectedBinding);
       STLAllocator<ShaderBufferMember> sbma(*vk.m_CPUAllocator);
       DescriptorSetLayoutBindingData binding(*vk.m_CPUAllocator);
-      binding.m_BindingName = String(reflectedBinding.name, *vk.m_CPUAllocator);
+      binding.m_BindingName = String(
+          reflectedBinding.name ? reflectedBinding.name : "", *vk.m_CPUAllocator);
       binding.m_BindingIndex = reflectedBinding.binding;
       binding.m_ExpectedBufferSizeOrDivisor = reflectedBinding.block.size;
       binding.m_BufferType = bufferType;
@@ -250,7 +252,8 @@ ReflectDescriptorSetLayoutsRaw(VkState &vk, const unsigned char *stage_bin,
            blockIdx < reflectedBinding.block.member_count; blockIdx++) {
         auto member = reflectedBinding.block.members[blockIdx];
         ShaderBufferMember reflectedMember(*vk.m_CPUAllocator);
-        reflectedMember.m_Name = String(member.name, *vk.m_CPUAllocator);
+        reflectedMember.m_Name =
+            String(member.name ? member.name : "", *vk.m_CPUAllocator);
         reflectedMember.m_Offset =
             member.absolute_offset; // this might be an issue with padded types?
         reflectedMember.m_Size = member.padded_size;
@@ -266,8 +269,9 @@ ReflectDescriptorSetLayoutsRaw(VkState &vk, const unsigned char *stage_bin,
       }
       if (reflectedBinding.resource_type & SPV_REFLECT_RESOURCE_FLAG_SAMPLER) {
         ShaderBufferMember reflectedMember(*vk.m_CPUAllocator);
-        reflectedMember.m_Name =
-            String(reflectedBinding.name, *vk.m_CPUAllocator);
+        reflectedMember.m_Name = String(
+            reflectedBinding.name ? reflectedBinding.name : "",
+            *vk.m_CPUAllocator);
         reflectedMember.m_Type = ShaderBufferMemberType::_sampler;
         binding.m_Members.push_back(reflectedMember);
       }
@@ -315,7 +319,7 @@ ReflectPushConstantsRaw(VkState &vk, const unsigned char *stage_bin,
     PushConstantBlock pcb(*vk.m_CPUAllocator);
     pcb.m_Size = pcBlock.size;
     pcb.m_Offset = pcBlock.offset;
-    pcb.m_Name = pcBlock.name;
+    pcb.m_Name = pcBlock.name ? pcBlock.name : "";
     pcb.m_Stage = (VkShaderStageFlags)shaderReflectModule.shader_stage;
     pushConstants.push_back(pcb);
   }

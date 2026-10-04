@@ -359,7 +359,7 @@ VkApplicationInfo vku::init::CreateAppInfo() {
   appInfo.applicationVersion = VK_MAKE_VERSION(0, 1, 0);
   appInfo.pEngineName = "None";
   appInfo.engineVersion = VK_MAKE_VERSION(0, 1, 0);
-  appInfo.apiVersion = VK_API_VERSION_1_2;
+  appInfo.apiVersion = VK_API_VERSION_1_3;
 
   return appInfo;
 }
@@ -444,18 +444,44 @@ void vku::init::CleanupVulkan(VkState &vk) {
   if (vk.m_UseValidation) {
     CleanupDebugOutput(vk);
   }
-  for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-    vkDestroySemaphore(vk.m_LogicalDevice, vk.m_ImageAvailableSemaphores[i],
-                       nullptr);
-    vkDestroySemaphore(vk.m_LogicalDevice, vk.m_RenderFinishedSemaphores[i],
-                       nullptr);
-    vkDestroyFence(vk.m_LogicalDevice, vk.m_FrameInFlightFences[i], nullptr);
+  for (size_t i = 0; i < vk.m_ImageAvailableSemaphores.size(); i++) {
+    if (vk.m_ImageAvailableSemaphores[i] != VK_NULL_HANDLE) {
+      vkDestroySemaphore(vk.m_LogicalDevice, vk.m_ImageAvailableSemaphores[i],
+                         nullptr);
+    }
+  }
+  for (size_t i = 0; i < vk.m_RenderFinishedSemaphores.size(); i++) {
+    if (vk.m_RenderFinishedSemaphores[i] != VK_NULL_HANDLE) {
+      vkDestroySemaphore(vk.m_LogicalDevice, vk.m_RenderFinishedSemaphores[i],
+                         nullptr);
+    }
+  }
+  for (size_t i = 0; i < vk.m_ComputeFinishedSemaphores.size(); i++) {
+    if (vk.m_ComputeFinishedSemaphores[i] != VK_NULL_HANDLE) {
+      vkDestroySemaphore(vk.m_LogicalDevice, vk.m_ComputeFinishedSemaphores[i],
+                         nullptr);
+    }
+  }
+  for (size_t i = 0; i < vk.m_FrameInFlightFences.size(); i++) {
+    if (vk.m_FrameInFlightFences[i] != VK_NULL_HANDLE) {
+      vkDestroyFence(vk.m_LogicalDevice, vk.m_FrameInFlightFences[i], nullptr);
+    }
+  }
+  for (size_t i = 0; i < vk.m_ComputeInFlightFences.size(); i++) {
+    if (vk.m_ComputeInFlightFences[i] != VK_NULL_HANDLE) {
+      vkDestroyFence(vk.m_LogicalDevice, vk.m_ComputeInFlightFences[i],
+                     nullptr);
+    }
   }
 
   vkDestroyCommandPool(vk.m_LogicalDevice, vk.m_GraphicsComputeQueueCommandPool,
                        nullptr);
   vkDestroyRenderPass(vk.m_LogicalDevice, vk.m_SwapchainImageRenderPass,
                       nullptr);
+  if (vk.m_ImGuiRenderPass != VK_NULL_HANDLE) {
+    vkDestroyRenderPass(vk.m_LogicalDevice, vk.m_ImGuiRenderPass, nullptr);
+    vk.m_ImGuiRenderPass = VK_NULL_HANDLE;
+  }
 
   vkDestroySurfaceKHR(vk.m_Instance, vk.m_Surface, nullptr);
   vkDestroyDevice(vk.m_LogicalDevice, nullptr);
@@ -658,9 +684,34 @@ void vku::init::CreateLogicalDevice(VkState &vk) {
   } else {
     createInfo.enabledLayerCount = 0;
   }
+  VkPhysicalDeviceExtendedDynamicState3FeaturesEXT extendedDynamicState3{
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_3_FEATURES_EXT,
+      nullptr,
+      VK_TRUE, // extendedDynamicState3ColorBlendEquation
+      VK_TRUE, // extendedDynamicState3ColorWriteMask
+      VK_TRUE, // extendedDynamicState3RasterizationStream
+      VK_TRUE, // extendedDynamicState3DepthClipEnable
+      VK_TRUE, // extendedDynamicState3SampleLocationsEnable
+      VK_TRUE, // extendedDynamicState3ColorBlendAdvanced
+      VK_TRUE, // extendedDynamicState3ProvokingVertexMode
+      VK_TRUE, // extendedDynamicState3LineRasterizationMode
+      VK_TRUE, // extendedDynamicState3LineStippleEnable
+      VK_TRUE, // extendedDynamicState3DepthClipNegativeOneToOne
+      VK_TRUE, // extendedDynamicState3ViewportWScalingEnable
+      VK_TRUE, // extendedDynamicState3ViewportSwizzle
+      VK_TRUE, // extendedDynamicState3ConservativeRasterizationMode
+      VK_TRUE, // extendedDynamicState3FaultMode
+  };
+
+  VkPhysicalDeviceExtendedDynamicStateFeaturesEXT extendedDynamicState{
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_FEATURES_EXT,
+      &extendedDynamicState3,
+      VK_TRUE,
+  };
+
   VkPhysicalDeviceSynchronization2FeaturesKHR sync2Extension{
       VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES_KHR,
-      nullptr,
+      &extendedDynamicState,
       VK_TRUE,
   };
 
@@ -1266,4 +1317,24 @@ vku::init::GetDeviceAvailableExtensions(IAllocator &alloc,
 
   return availableExtensions;
 }
-void vku::init::Quit(vku::VkState &vk) { vk.m_ShouldRun = false; }
+void vku::init::Quit(vku::VkState &vk) {
+  vk.m_ShouldRun = false;
+
+  if (vk.m_LogicalDevice == VK_NULL_HANDLE) {
+    return;
+  }
+
+  vkDeviceWaitIdle(vk.m_LogicalDevice);
+
+  Texture::FreeDefaultTexture(vk);
+  Mesh::FreeBuiltInMeshes(vk);
+  CleanupNanoVG(vk);
+  CleanupImGui(vk);
+  if (vk.m_Backend) {
+    vk.m_Backend->CleanupWindow(vk);
+  }
+  CleanupVulkan(vk);
+
+  vk.m_LogicalDevice = VK_NULL_HANDLE;
+  vk.m_Instance = VK_NULL_HANDLE;
+}

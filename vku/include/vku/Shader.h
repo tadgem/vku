@@ -100,12 +100,14 @@ struct ShaderStage {
 };
 
 struct ShaderProgram {
+  ShaderProgram() = default;
+
   ShaderProgram(IAllocator &alloc, Vector<ShaderStage> shaderStages,
                 VkDescriptorSetLayout layout);
 
   Vector<ShaderStage> m_Stages;
 
-  VkDescriptorSetLayout m_DescriptorSetLayout;
+  VkDescriptorSetLayout m_DescriptorSetLayout = VK_NULL_HANDLE;
   Vector<VkPushConstantRange> m_PushConstantRanges;
 
   void Free(VkState &vk);
