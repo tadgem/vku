@@ -7,8 +7,8 @@
 namespace vku {
 class Attachment {
 public:
-  Vector<Texture> m_AttachmentSwapchainImages;
-  VkFormat m_Format;
+  Vector<Texture>       m_AttachmentSwapchainImages;
+  VkFormat              m_Format;
   VkSampleCountFlagBits m_SampleCount;
 
   Attachment(VkState &vk)
@@ -22,15 +22,13 @@ public:
     }
   }
 
-  static Attachment
-  CreateColourAttachment(VkState &vk, VkExtent2D resolution, uint32_t numMips,
+  static Attachment CreateColourAttachment(VkState &vk, VkExtent2D resolution, uint32_t numMips,
                          VkSampleCountFlagBits sampleCount, VkFormat format,
                          VkImageUsageFlags usageFlags,
                          VkMemoryPropertyFlagBits memoryFlags,
                          VkImageAspectFlagBits imageAspect,
                          VkFilter samplerFilter = VK_FILTER_LINEAR,
-                         VkSamplerAddressMode samplerAddressMode =
-                             VK_SAMPLER_ADDRESS_MODE_REPEAT) {
+                         VkSamplerAddressMode samplerAddressMode = VK_SAMPLER_ADDRESS_MODE_REPEAT) {
     Attachment a(vk);
     a.m_Format = format;
     a.m_SampleCount = sampleCount;
@@ -50,8 +48,7 @@ public:
       VkSampleCountFlagBits sampleCount, VkImageUsageFlags usageFlags,
       VkMemoryPropertyFlagBits memoryFlags, VkImageAspectFlagBits imageAspect,
       VkFilter samplerFilter = VK_FILTER_LINEAR,
-      VkSamplerAddressMode samplerAddressMode =
-          VK_SAMPLER_ADDRESS_MODE_REPEAT) {
+      VkSamplerAddressMode samplerAddressMode = VK_SAMPLER_ADDRESS_MODE_REPEAT) {
     Attachment a(vk);
     a.m_Format = utils::FindDepthFormat(vk);
     a.m_SampleCount = sampleCount;
@@ -89,8 +86,7 @@ public:
                            VkMemoryPropertyFlagBits memoryFlags,
                            VkSampleCountFlagBits sampleCount,
                            VkFilter samplerFilter = VK_FILTER_LINEAR,
-                           VkSamplerAddressMode samplerAddressMode =
-                               VK_SAMPLER_ADDRESS_MODE_REPEAT) {
+                           VkSamplerAddressMode samplerAddressMode = VK_SAMPLER_ADDRESS_MODE_REPEAT) {
     m_ColourAttachments.push_back(Attachment::CreateColourAttachment(
         vk, resolution, numMips, sampleCount, format, usageFlags, memoryFlags,
         VK_IMAGE_ASPECT_COLOR_BIT, samplerFilter, samplerAddressMode));
@@ -107,8 +103,7 @@ public:
                            VkMemoryPropertyFlagBits memoryFlags,
                            VkSampleCountFlagBits sampleCount,
                            VkFilter samplerFilter = VK_FILTER_LINEAR,
-                           VkSamplerAddressMode samplerAddressMode =
-                               VK_SAMPLER_ADDRESS_MODE_REPEAT) {
+                           VkSamplerAddressMode samplerAddressMode = VK_SAMPLER_ADDRESS_MODE_REPEAT) {
     VkExtent2D resolution = vk.m_MaxFramebufferExtent;
     ResolveResolutionScale(scale, resolution.width, resolution.height,
                            resolution.width, resolution.height);

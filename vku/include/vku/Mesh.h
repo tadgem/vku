@@ -17,8 +17,7 @@ struct VertexDataPosColUv {
     return bindingDescription;
   }
 
-  static Vector<VkVertexInputAttributeDescription>
-  GetAttributeDescriptions(IAllocator &alloc) {
+  static Vector<VkVertexInputAttributeDescription> GetAttributeDescriptions(IAllocator &alloc) {
     Vector<VkVertexInputAttributeDescription> attributeDescriptions(alloc);
 
     attributeDescriptions.resize(3);

@@ -6,39 +6,12 @@
 namespace vku {
 namespace pipelines {
 
-VkPipelineData
-CreateComputePipeline(VkState &vk, StageBinary &comp,
-                      VkDescriptorSetLayout &descriptorSetLayout);
-
-VkPipelineData CreateDynamicRasterPipeline(VkState &vk, ShaderProgram &shader,
-                                           VertexDescription &vertexDescription,
-                                           RasterizationState &rasterState,
-                                           VkExtent2D resolution,
-                                           Vector<VkFormat> colourAttachments);
-
-VkPipelineData CreateDynamicRasterPipeline(
-    VkState &vk, ShaderProgram &shader, VertexDescription &vertexDescription,
-    RasterizationState &rasterState, VkExtent2D resolution,
-    Vector<VkFormat> colourAttachments,
-    PipelineAttachmentState &attachmentState);
-
-VkPipelineData CreateRasterPipeline(VkState &vk, ShaderProgram &shader,
-                                    VertexDescription &vertexDescription,
-                                    RasterizationState &rasterState,
-                                    VkRenderPass &pipelineRenderPass,
-                                    VkExtent2D resolution,
-                                    uint32_t colorAttachmentCount = 1);
-
-VkPipelineData CreateRasterPipeline(VkState &vk, ShaderProgram &shader,
-                                    VertexDescription &vertexDescription,
-                                    RasterizationState &rasterState,
-                                    VkRenderPass &pipelineRenderPass,
-                                    VkExtent2D resolution,
-                                    PipelineAttachmentState &attachmentState);
-
-PipelineAttachmentState
-CreateGBufferAttachmentState(IAllocator &alloc, uint32_t colourAttachmentCount,
-                             uint32_t writeAttachmentIndex);
+VkPipelineData CreateComputePipeline(VkState& vk, StageBinary& comp, VkDescriptorSetLayout& descriptorSetLayout);
+VkPipelineData CreateDynamicRasterPipeline(VkState &vk, ShaderProgram &shader, VertexDescription &vertexDescription, RasterizationState &rasterState, VkExtent2D resolution, Vector<VkFormat> colourAttachments);
+VkPipelineData CreateDynamicRasterPipeline( VkState &vk, ShaderProgram &shader, VertexDescription &vertexDescription, RasterizationState &rasterState, VkExtent2D resolution, Vector<VkFormat> colourAttachments, PipelineAttachmentState &attachmentState);
+VkPipelineData CreateRasterPipeline(VkState &vk, ShaderProgram &shader, VertexDescription &vertexDescription, RasterizationState &rasterState, VkRenderPass &pipelineRenderPass, VkExtent2D resolution, uint32_t colorAttachmentCount = 1);
+VkPipelineData CreateRasterPipeline(VkState &vk, ShaderProgram &shader, VertexDescription &vertexDescription, RasterizationState &rasterState, VkRenderPass &pipelineRenderPass, VkExtent2D resolution, PipelineAttachmentState &attachmentState);
+PipelineAttachmentState CreateGBufferAttachmentState(IAllocator &alloc, uint32_t colourAttachmentCount, uint32_t writeAttachmentIndex);
 
 class Pipeline {
 public:
