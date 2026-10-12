@@ -1312,7 +1312,7 @@ int fonsAddFontMem(FONScontext *stash, const char *name, unsigned char *data,
 
   // strncpy(font->name, name, sizeof(font->name));
 
-  strncpy_s((char *)font->data, sizeof(font->name), name, sizeof(name));
+  strncpy_s(font->name, sizeof(font->name), name, sizeof(font->name) - 1);
   font->name[sizeof(font->name) - 1] = '\0';
 
   // Init hash lookup.
