@@ -47,10 +47,9 @@ void vku::init::CleanupImGui(VkState& vk)
 {
 	if (vk.m_UseImGui)
 	{
-		// TODO: destroy with other built in render passes
-		// vkDestroyRenderPass(m_LogicalDevice, m_ImGuiRenderPass, nullptr);
 		ImGui_ImplVulkan_Shutdown();
 		vk.m_Backend->CleanupImGuiBackend(vk);
+		vkDestroyDescriptorPool(vk.m_LogicalDevice, vk.m_ImGuiDescriptorPool, nullptr);
 	}
 }
 
@@ -323,20 +322,20 @@ void vku::init::InitImGui(VkState& vk)
 
 	// TODO : Reinit imgui backend on backend refactor
 	vk.m_Backend->InitImGuiBackend(vk);
-	ImGui_ImplVulkan_InitInfo init_info = {};
+	vk.m_ImGuiDescriptorPool = vk.m_DescriptorSetAllocator.CreatePool(*vk.m_CPUAllocator, vk.m_LogicalDevice, 4096);
 
+	ImGui_ImplVulkan_InitInfo init_info = {};
 	init_info.Instance                  = vk.m_Instance;
 	init_info.PhysicalDevice            = vk.m_PhysicalDevice;
 	init_info.Device                    = vk.m_LogicalDevice;
 	init_info.QueueFamily               = vk.m_QueueFamilyIndices.m_QueueFamilies[QueueFamilyType::GraphicsAndCompute];
 	init_info.Queue                     = vk.m_GraphicsQueue;
 	init_info.PipelineCache             = VK_NULL_HANDLE;
-	// TODO: this is a bit shit, need to clean this pool some wheere
-	init_info.DescriptorPool = vk.m_DescriptorSetAllocator.CreatePool(*vk.m_CPUAllocator, vk.m_LogicalDevice, 4096);
-	init_info.Allocator      = nullptr;
-	init_info.MinImageCount  = 2;
-	init_info.ImageCount     = 2;
-	init_info.RenderPass     = vk.m_ImGuiRenderPass;
+	init_info.DescriptorPool            = vk.m_ImGuiDescriptorPool;
+	init_info.Allocator                 = nullptr;
+	init_info.MinImageCount             = 2;
+	init_info.ImageCount                = 2;
+	init_info.RenderPass                = vk.m_ImGuiRenderPass;
 	if (vk.m_UseSwapchainMsaa)
 	{
 		init_info.MSAASamples = vk.m_MaxMsaaSamples;
@@ -440,14 +439,13 @@ void vku::init::CreateInstance(VkState& vk)
 	// setup an m_Instance create info with our extensions & app info to create a
 	// vulkan m_Instance
 	VkInstanceCreateInfo createInfo{};
-	createInfo.sType                   = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-	createInfo.pApplicationInfo        = &appInfo;
-	createInfo.enabledExtensionCount   = static_cast<uint32_t>(extensionNames.size());
-	createInfo.ppEnabledExtensionNames = extensionNames.data();
-
+	createInfo.sType                                            = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+	createInfo.pApplicationInfo                                 = &appInfo;
+	createInfo.enabledExtensionCount                            = static_cast<uint32_t>(extensionNames.size());
+	createInfo.ppEnabledExtensionNames                          = extensionNames.data();
+	VkDebugUtilsMessengerCreateInfoEXT debugMessengerCreateInfo = {};
 	if (vk.m_UseValidation)
 	{
-		VkDebugUtilsMessengerCreateInfoEXT debugMessengerCreateInfo;
 		createInfo.enabledLayerCount   = (uint32_t) s_ValidationLayers.size();
 		createInfo.ppEnabledLayerNames = s_ValidationLayers.data();
 

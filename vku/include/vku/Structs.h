@@ -357,15 +357,16 @@ struct VkState
 	Unique<VkBackend>        m_Backend;
 	Unique<IAllocator>       m_CPUAllocator;
 
-	VkInstance               m_Instance;
-	VkSurfaceKHR             m_Surface;
-	VkSwapchainKHR           m_SwapChain;
-	VkDebugUtilsMessengerEXT m_DebugMessenger;
-	VkPhysicalDevice         m_PhysicalDevice = VK_NULL_HANDLE;
-	VkDevice                 m_LogicalDevice  = VK_NULL_HANDLE;
-	VkRenderPass             m_SwapchainImageRenderPass;
-	VkRenderPass             m_ImGuiRenderPass;
-	VkCommandPool            m_GraphicsComputeQueueCommandPool;
+	VkInstance               m_Instance                        = VK_NULL_HANDLE;
+	VkSurfaceKHR             m_Surface                         = VK_NULL_HANDLE;
+	VkSwapchainKHR           m_SwapChain                       = VK_NULL_HANDLE;
+	VkDebugUtilsMessengerEXT m_DebugMessenger                  = VK_NULL_HANDLE;
+	VkPhysicalDevice         m_PhysicalDevice                  = VK_NULL_HANDLE;
+	VkDevice                 m_LogicalDevice                   = VK_NULL_HANDLE;
+	VkRenderPass             m_SwapchainImageRenderPass        = VK_NULL_HANDLE;
+	VkRenderPass             m_ImGuiRenderPass                 = VK_NULL_HANDLE;
+	VkDescriptorPool         m_ImGuiDescriptorPool             = VK_NULL_HANDLE;
+	VkCommandPool            m_GraphicsComputeQueueCommandPool = VK_NULL_HANDLE;
 	VmaAllocator             m_Allocator;
 	DescriptorSetAllocator   m_DescriptorSetAllocator;
 
@@ -392,13 +393,13 @@ struct VkState
 	VkFormat                 m_SwapChainImageFormat;
 	VkExtent2D               m_SwapChainImageExtent;
 
-	VkImage                  m_SwapChainColourImage;
-	VkDeviceMemory           m_SwapChainColourImageMemory;
-	VkImageView              m_SwapChainColourImageView;
+	VkImage                  m_SwapChainColourImage       = VK_NULL_HANDLE;
+	VkDeviceMemory           m_SwapChainColourImageMemory = VK_NULL_HANDLE;
+	VkImageView              m_SwapChainColourImageView   = VK_NULL_HANDLE;
 
-	VkImage                  m_SwapChainDepthImage;
-	VkDeviceMemory           m_SwapChainDepthImageMemory;
-	VkImageView              m_SwapChainDepthImageView;
+	VkImage                  m_SwapChainDepthImage        = VK_NULL_HANDLE;
+	VkDeviceMemory           m_SwapChainDepthImageMemory  = VK_NULL_HANDLE;
+	VkImageView              m_SwapChainDepthImageView    = VK_NULL_HANDLE;
 
 	VkSampleCountFlagBits    m_MaxMsaaSamples;
 	VkSampleCountFlags       m_SelectedMsaaSamples = VK_SAMPLE_COUNT_1_BIT;

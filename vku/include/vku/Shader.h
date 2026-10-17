@@ -28,6 +28,8 @@ struct ShaderStage
 
 	ShaderStage(IAllocator& alloc);
 
+	void               Free(VkState& vk);
+
 	static String      LoadShaderSource(VkState& vk, const char* path);
 
 	static ShaderStage CreateFromBinary(VkState&               vk,

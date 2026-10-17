@@ -101,8 +101,20 @@ ShaderStage::ShaderStage(IAllocator& alloc)
     : m_Name(alloc), m_StageBinary(alloc), m_PushConstants(alloc), m_LayoutDatas(alloc)
 {}
 
+void ShaderStage::Free(VkState& vk)
+{
+	m_StageBinary.clear();
+	m_LayoutDatas.clear();
+	m_PushConstants.clear();
+	vkDestroyShaderModule(vk.m_LogicalDevice, m_Module, nullptr);
+}
+
 void ShaderProgram::Free(VkState& vk)
 {
+	for (ShaderStage& stage : m_Stages)
+	{
+		stage.Free(vk);
+	}
 	vkDestroyDescriptorSetLayout(vk.m_LogicalDevice, m_DescriptorSetLayout, nullptr);
 }
 
