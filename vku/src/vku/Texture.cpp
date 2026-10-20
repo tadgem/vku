@@ -252,7 +252,11 @@ void vku::Texture::FreeDefaultTexture(vku::VkState& vk)
 
 void vku::Texture::Free(vku::VkState& vk)
 {
-	vkDestroySampler(vk.m_LogicalDevice, m_Sampler, nullptr);
+	// do not need to destroy sampler.
+	if (m_Sampler != VK_NULL_HANDLE)
+	{
+		vkDestroySampler(vk.m_LogicalDevice, m_Sampler, nullptr);
+	}
 	vkDestroyImageView(vk.m_LogicalDevice, m_ImageView, nullptr);
 	vkDestroyImage(vk.m_LogicalDevice, m_Image, nullptr);
 	vkFreeMemory(vk.m_LogicalDevice, m_Memory, nullptr);
