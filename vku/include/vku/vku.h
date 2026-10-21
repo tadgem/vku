@@ -14,5 +14,6 @@
 #include "vku/RenderPass.h"
 #include "vku/Shader.h"
 #include "vku/Structs.h"
+#include "vku/Sync.h"
 #include "vku/Texture.h"
 #include "vku/Utils.h"

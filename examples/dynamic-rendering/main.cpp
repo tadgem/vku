@@ -305,6 +305,18 @@ void RecordCommandBuffersV2(VkState&           vk,
 				        debug::EndDebugMarker(commandBuffer);
 			        }
 			        debug::BeginDebugMarker(commandBuffer, "Lighting Pass", {1.0f, 1.0f, 0.0f, 1.0f});
+			        {
+				        auto image = view->m_LightPassFB.m_ColourAttachments[0]
+				                             .m_AttachmentSwapchainImages[frameIndex]
+				                             .m_Image;
+				        sync::ImageBarrier(commandBuffer,
+				                           image,
+				                           VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
+				                           0,
+				                           VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+				                           VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+				                           VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
+			        }
 			        // vkCmdBeginRenderingKHR(commandBuffer,
 			        // &view->m_LightPassFB.m_DynamicRenderingInfo.m_RenderingInfos[frameIndex]);
 			        view->m_LightPassFB.BeginDynamicRendering(vk, commandBuffer, frameIndex);
@@ -391,6 +403,19 @@ void RecordCommandBuffersV2(VkState&           vk,
 
 				        vkCmdEndRenderingKHR(commandBuffer);
 				        debug::EndDebugMarker(commandBuffer);
+
+				        {
+					        auto image = view->m_LightPassFB.m_ColourAttachments[0]
+					                             .m_AttachmentSwapchainImages[frameIndex]
+					                             .m_Image;
+					        sync::ImageBarrier(commandBuffer,
+					                           image,
+					                           VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+					                           VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+					                           VK_ACCESS_SHADER_READ_BIT,
+					                           VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+					                           VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
+				        }
 			        }
 		        }
 	        });

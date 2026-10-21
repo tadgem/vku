@@ -19,6 +19,7 @@ set(VKU_SRCS
         src/vku/Descriptor.cpp
         src/vku/RenderPass.cpp
         src/vku/Submission.cpp
+        src/vku/Sync.cpp
         src/vku/Debug.cpp
         src/ThirdParty/spirv_reflect.c
         src/ThirdParty/nanovg.c

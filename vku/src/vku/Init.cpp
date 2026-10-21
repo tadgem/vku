@@ -43,13 +43,17 @@ void vku::init::Cleanup(VkState& vk)
 	CleanupVulkan(vk);
 }
 
-void vku::init::CleanupImGui(VkState& vk)
+void vku::init::CleanupImGui(VkState& vk, bool destroyPool)
 {
 	if (vk.m_UseImGui)
 	{
 		ImGui_ImplVulkan_Shutdown();
 		vk.m_Backend->CleanupImGuiBackend(vk);
-		vkDestroyDescriptorPool(vk.m_LogicalDevice, vk.m_ImGuiDescriptorPool, nullptr);
+		if (destroyPool && vk.m_ImGuiDescriptorPool != VK_NULL_HANDLE)
+		{
+			vkDestroyDescriptorPool(vk.m_LogicalDevice, vk.m_ImGuiDescriptorPool, nullptr);
+			vk.m_ImGuiDescriptorPool = VK_NULL_HANDLE;
+		}
 	}
 }
 
@@ -312,7 +316,10 @@ void vku::init::InitImGui(VkState& vk)
 	{
 		return;
 	}
-	ImGui::CreateContext();
+	if (!ImGui::GetCurrentContext())
+	{
+		ImGui::CreateContext();
+	}
 	ImGuiIO& io = ImGui::GetIO();
 	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 	auto style                        = ImGui::GetStyle();
@@ -322,7 +329,10 @@ void vku::init::InitImGui(VkState& vk)
 
 	// TODO : Reinit imgui backend on backend refactor
 	vk.m_Backend->InitImGuiBackend(vk);
-	vk.m_ImGuiDescriptorPool = vk.m_DescriptorSetAllocator.CreatePool(*vk.m_CPUAllocator, vk.m_LogicalDevice, 4096);
+	if (vk.m_ImGuiDescriptorPool == VK_NULL_HANDLE)
+	{
+		vk.m_ImGuiDescriptorPool = vk.m_DescriptorSetAllocator.CreatePool(*vk.m_CPUAllocator, vk.m_LogicalDevice, 4096);
+	}
 
 	ImGui_ImplVulkan_InitInfo init_info = {};
 	init_info.Instance                  = vk.m_Instance;
@@ -974,7 +984,7 @@ void vku::init::RecreateSwapChain(VkState& vk)
 		;
 
 	CleanupSwapChain(vk);
-	CleanupImGui(vk);
+	CleanupImGui(vk, false);
 	CleanupNanoVG(vk);
 
 	CreateSwapChain(vk);

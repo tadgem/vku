@@ -11,7 +11,7 @@ namespace init
 	const StaticVector<const char*> s_ValidationLayers         = {"VK_LAYER_KHRONOS_validation"};
 	const StaticVector<const char*> s_RequiredDeviceExtensions = {"VK_KHR_swapchain"};
 
-	void                            CleanupImGui(VkState& vk);
+	void                            CleanupImGui(VkState& vk, bool destroyPool = true);
 	void                            CleanupNanoVG(VkState& vk);
 	void                            Cleanup(VkState& vk);
 	bool                            CheckValidationLayerSupport(VkState& vk);

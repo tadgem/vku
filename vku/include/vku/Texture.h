@@ -164,7 +164,7 @@ public:
 		VkDescriptorSet imguiTextureHandle = VK_NULL_HANDLE;
 		if (vk.m_UseImGui)
 		{
-			imguiTextureHandle = ImGui_ImplVulkan_AddTexture(sampler, imageView, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
+			imguiTextureHandle = ImGui_ImplVulkan_AddTexture(sampler, imageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 		}
 
 		return Texture(image, imageView, memory, sampler, format, sampleCount, imguiTextureHandle);

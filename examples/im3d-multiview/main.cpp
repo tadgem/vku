@@ -97,8 +97,6 @@ ViewData         CreateView(VkState& vk, VkuIm3dState im3dState, ShaderProgram g
                                                                    finalImage.m_RenderPassInfo.m_RenderPass,
                                                                    vk.m_SwapChainImageExtent);
 
-	auto           im3dViewState = AddIm3dForViewport(vk, im3dState, finalImage.m_RenderPassInfo.m_RenderPass, false);
-
 	Vector<VkAttachmentDescription> im3dColourAttachments(*vk.m_CPUAllocator);
 	VkAttachmentDescription         im3dColourDesc{};
 	im3dColourDesc.format         = finalImage.m_ColourAttachments[0].m_Format;
@@ -108,7 +106,7 @@ ViewData         CreateView(VkState& vk, VkuIm3dState im3dState, ShaderProgram g
 	im3dColourDesc.stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 	im3dColourDesc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 	im3dColourDesc.initialLayout  = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-	im3dColourDesc.finalLayout    = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+	im3dColourDesc.finalLayout    = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 	im3dColourAttachments.push_back(im3dColourDesc);
 
 	VkAttachmentDescription im3dDepthDesc{};
@@ -130,6 +128,8 @@ ViewData         CreateView(VkState& vk, VkuIm3dState im3dState, ShaderProgram g
 	                                true,
 	                                im3dDepthDesc,
 	                                VK_ATTACHMENT_LOAD_OP_LOAD);
+
+	auto           im3dViewState = AddIm3dForViewport(vk, im3dState, im3dRenderPass, false);
 
 	Vector<VkFramebuffer> im3dFramebuffers(*vk.m_CPUAllocator);
 	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
@@ -442,7 +442,7 @@ void RecordCommandBuffersV2(VkState&           vk,
 				        vkCmdBeginRenderPass(commandBuffer, &im3dRenderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 				        vkCmdBindPipeline(commandBuffer,
 				                          VK_PIPELINE_BIND_POINT_GRAPHICS,
-				                          view->m_DeferredIm3dState.m_TrisPipeline.m_Pipeline);
+				                          view->m_Im3dState.m_TrisPipeline.m_Pipeline);
 				        VkViewport viewport{};
 				        viewport.x        = 0.0f;
 				        viewport.y        = 0.0f;
@@ -463,7 +463,7 @@ void RecordCommandBuffersV2(VkState&           vk,
 				                 commandBuffer,
 				                 frameIndex,
 				                 im3dState,
-				                 view->m_DeferredIm3dState,
+				                 view->m_Im3dState,
 				                 view->m_Camera.Proj * view->m_Camera.View,
 				                 viewExtent.width,
 				                 viewExtent.height);
