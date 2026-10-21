@@ -395,7 +395,8 @@ VkPipelineData CreateDynamicRasterPipeline(VkState&            vk,
                                            VertexDescription&  vertexDescription,
                                            RasterizationState& rasterState,
                                            VkExtent2D          resolution,
-                                           Vector<VkFormat>    colourAttachments)
+                                           VkFormat*           colourAttachments,
+                                           uint32_t            colourAttachmentCount)
 {
 	VkShaderModule                  vertShaderModule = shader.m_Stages[0].m_Module;
 	VkShaderModule                  fragShaderModule = shader.m_Stages[1].m_Module;
@@ -419,7 +420,7 @@ VkPipelineData CreateDynamicRasterPipeline(VkState&            vk,
 	VkPipelineMultisampleStateCreateInfo      multisampleInfo   = CreateMultiSampleInfo(vk, rasterState);
 
 	PipelineAttachmentState                   attachmentState =
-	        CreateAttachmentState(*vk.m_CPUAllocator, static_cast<uint32_t>(colourAttachments.size()));
+	        CreateAttachmentState(*vk.m_CPUAllocator, static_cast<uint32_t>(colourAttachmentCount));
 
 	PipelineDynamicState                  dynamicState       = CreateDynamicStateInfo(*vk.m_CPUAllocator);
 
@@ -452,8 +453,8 @@ VkPipelineData CreateDynamicRasterPipeline(VkState&            vk,
 
 	VkPipelineRenderingCreateInfoKHR dynRenderingCreateInfo{};
 	dynRenderingCreateInfo.sType                   = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR;
-	dynRenderingCreateInfo.colorAttachmentCount    = static_cast<uint32_t>(colourAttachments.size());
-	dynRenderingCreateInfo.pColorAttachmentFormats = colourAttachments.data();
+	dynRenderingCreateInfo.colorAttachmentCount    = static_cast<uint32_t>(colourAttachmentCount);
+	dynRenderingCreateInfo.pColorAttachmentFormats = colourAttachments;
 	// Todo: Support other depth formats
 	VkFormat depthStencilFormat =
 	        rasterState.m_DepthCompareOp == VK_COMPARE_OP_NEVER ? VK_FORMAT_UNDEFINED : utils::FindDepthFormat(vk);
@@ -479,7 +480,8 @@ VkPipelineData CreateDynamicRasterPipeline(VkState&                 vk,
                                            VertexDescription&       vertexDescription,
                                            RasterizationState&      rasterState,
                                            VkExtent2D               resolution,
-                                           Vector<VkFormat>         colourAttachments,
+                                           VkFormat*                colourAttachments,
+                                           uint32_t                 colourAttachmentCount,
                                            PipelineAttachmentState& attachmentState)
 {
 	VkShaderModule                  vertShaderModule = shader.m_Stages[0].m_Module;
@@ -534,8 +536,8 @@ VkPipelineData CreateDynamicRasterPipeline(VkState&                 vk,
 
 	VkPipelineRenderingCreateInfoKHR dynRenderingCreateInfo{};
 	dynRenderingCreateInfo.sType                   = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR;
-	dynRenderingCreateInfo.colorAttachmentCount    = static_cast<uint32_t>(colourAttachments.size());
-	dynRenderingCreateInfo.pColorAttachmentFormats = colourAttachments.data();
+	dynRenderingCreateInfo.colorAttachmentCount    = static_cast<uint32_t>(colourAttachmentCount);
+	dynRenderingCreateInfo.pColorAttachmentFormats = colourAttachments;
 	VkFormat depthStencilFormat =
 	        rasterState.m_DepthCompareOp == VK_COMPARE_OP_NEVER ? VK_FORMAT_UNDEFINED : utils::FindDepthFormat(vk);
 	dynRenderingCreateInfo.depthAttachmentFormat = depthStencilFormat;

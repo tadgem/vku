@@ -9,19 +9,24 @@ namespace pipelines
 {
 
 	VkPipelineData CreateComputePipeline(VkState& vk, StageBinary& comp, VkDescriptorSetLayout& descriptorSetLayout);
+
 	VkPipelineData CreateDynamicRasterPipeline(VkState&            vk,
 	                                           ShaderProgram&      shader,
 	                                           VertexDescription&  vertexDescription,
 	                                           RasterizationState& rasterState,
 	                                           VkExtent2D          resolution,
-	                                           Vector<VkFormat>    colourAttachments);
+	                                           VkFormat*           colourAttachments,
+	                                           uint32_t            colourAttachmentCount);
+
 	VkPipelineData CreateDynamicRasterPipeline(VkState&                 vk,
 	                                           ShaderProgram&           shader,
 	                                           VertexDescription&       vertexDescription,
 	                                           RasterizationState&      rasterState,
 	                                           VkExtent2D               resolution,
-	                                           Vector<VkFormat>         colourAttachments,
+	                                           VkFormat*                colourAttachments,
+	                                           uint32_t                 colourAttachmentCount,
 	                                           PipelineAttachmentState& attachmentState);
+
 	VkPipelineData CreateRasterPipeline(VkState&            vk,
 	                                    ShaderProgram&      shader,
 	                                    VertexDescription&  vertexDescription,

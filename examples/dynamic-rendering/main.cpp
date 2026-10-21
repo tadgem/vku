@@ -118,7 +118,8 @@ RenderData CreateRenderData(VkState& vk, ShaderProgram gbufferProg, ShaderProgra
                                                                                  vertexDescription,
                                                                                  defaults::DefaultRasterState,
                                                                                  vk.m_SwapChainImageExtent,
-                                                                                 gbufferFormats);
+                                                                                 gbufferFormats.data(),
+                                                                                 gbufferFormats.size());
 
 	// create present graphics pipeline
 	// Pipeline stage?
@@ -133,7 +134,8 @@ RenderData CreateRenderData(VkState& vk, ShaderProgram gbufferProg, ShaderProgra
 	                                                                      presentVertexDescription,
 	                                                                      lightPassRasterState,
 	                                                                      vk.m_SwapChainImageExtent,
-	                                                                      presentFormats);
+	                                                                      presentFormats.data(),
+	                                                                      presentFormats.size());
 
 	return {gbufferPipeline, pipeline};
 }
